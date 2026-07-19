@@ -4,16 +4,31 @@ pub struct Canvas {
     cells: Vec<char>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Point {
+    pub x: isize,
+    pub y: isize,
+}
+
 impl Canvas {
-    fn new(width: usize, height: usize) -> Self {
+    pub(super) fn new(width: u16, height: u16) -> Self {
+        assert!(width > 0, "canvas width must be greater than zero");
+        assert!(height > 0, "canvas height must be greater than zero");
+        let (width, height) = (usize::from(width), usize::from(height));
         Self {
             width,
             height,
-            cells: Vec::new(),
+            cells: vec![' '; width * height],
         }
     }
 
-    fn set(&mut self, x: usize, y: usize, ch: char) {
+    pub(super) fn set(&mut self, x: isize, y: isize, ch: char) {
+        if x < 0 || y < 0 {
+            return;
+        }
+
+        let (x, y) = (x as usize, y as usize);
+
         if x >= self.width || y >= self.height {
             return;
         }
@@ -21,17 +36,48 @@ impl Canvas {
         self.cells[y * self.width + x] = ch;
     }
 
-    fn set_rounded(&mut self, x: f64, y: f64, ch: char) {
-        self.set(x.round() as usize, y.round() as usize, ch);
+    pub(super) fn set_rounded(&mut self, x: f64, y: f64, ch: char) {
+        self.set(x.round() as isize, y.round() as isize, ch);
     }
 
-    fn render(&self) -> String {
-        let mut output = String::with_capacity(self.width * self.height + self.height);
+    pub(super) fn line(&mut self, start: Point, end: Point, ch: char) {
+        let mut x = start.x;
+        let mut y = start.y;
+
+        let dx = (end.x - start.y).abs();
+        let sx = if start.x < end.x { 1 } else { -1 };
+
+        let dy = -((end.y - start.y).abs());
+        let sy = if start.y < end.y { 1 } else { -1 };
+
+        let mut error = dx + dy;
+
+        loop {
+            self.set(x, y, ch);
+
+            if x == end.x && y == end.y {
+                break;
+            }
+
+            let error_twice = 2 * error;
+
+            if error_twice >= dy {
+                error += dy;
+                x += sx;
+            }
+
+            if error_twice <= dx {
+                error += dx;
+                y += sy;
+            }
+        }
+    }
+
+    pub(super) fn render(&self) -> String {
+        let mut output = String::with_capacity(self.cells.len() + self.height);
 
         for row in self.cells.chunks(self.width) {
-            for ch in row {
-                output.push(*ch);
-            }
+            output.extend(row);
             output.push('\n');
         }
 

@@ -29,36 +29,43 @@ impl ClockTime {
         Self::new(hour, minute, second)
     }
 
-    pub fn hour(&self) -> u8 {
-        self.hour % 12
+    pub fn hour_12(self) -> u8 {
+        match self.hour % 12 {
+            0 => 12,
+            hour => hour,
+        }
     }
 
-    pub fn hour_24(&self) -> u8 {
+    pub fn hour_24(self) -> u8 {
         self.hour
     }
 
-    pub fn minute(&self) -> u8 {
+    pub fn minute(self) -> u8 {
         self.minute
     }
 
-    pub fn second(&self) -> u8 {
+    pub fn second(self) -> u8 {
         self.second
     }
 
-    pub fn total_seconds(&self) -> u32 {
+    pub fn total_seconds(self) -> u32 {
         self.hour_24() as u32 * 3600 + self.minute() as u32 * 60 + self.second() as u32
     }
 
-    pub fn hour_angle(&self) -> f64 {
-        ((self.hour() as f64 + self.minute() as f64 / 60.0 + self.second() as f64 / 3600.0) / 12.0)
-            * TAU
+    pub fn hour_angle(self) -> f64 {
+        // `self.hour` gives value between 0 and 23, `hour_angle` assumes base-12 hour
+        let hours = f64::from(self.hour % 12);
+        let minutes = f64::from(self.minute);
+        let seconds = f64::from(self.second);
+
+        (hours + minutes / 60.0 + seconds / 3600.0) / 12.0 * TAU
     }
 
-    pub fn minute_angle(&self) -> f64 {
-        ((self.minute() as f64 + self.second() as f64 / 60.0) / 60.0) * TAU
+    pub fn minute_angle(self) -> f64 {
+        ((self.minute as f64 + self.second as f64 / 60.0) / 60.0) * TAU
     }
 
-    pub fn second_angle(&self) -> f64 {
-        self.second() as f64 / 60.0 * TAU
+    pub fn second_angle(self) -> f64 {
+        self.second as f64 / 60.0 * TAU
     }
 }
