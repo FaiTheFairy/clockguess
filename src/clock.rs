@@ -1,0 +1,64 @@
+use std::f64::consts::TAU;
+
+use rand::RngExt;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct ClockTime {
+    hour: u8,
+    minute: u8,
+    second: u8,
+}
+
+impl ClockTime {
+    pub fn new(hour: u8, minute: u8, second: u8) -> Self {
+        assert!(hour < 24, "hour cannot be 24 or greater");
+        assert!(minute < 60, "minute cannot be 60 or greater");
+        assert!(second < 60, "second cannot be 60 or greater");
+        Self {
+            hour,
+            minute,
+            second,
+        }
+    }
+
+    pub fn random() -> Self {
+        let mut rng = rand::rng();
+        let hour = rng.random_range(0..24);
+        let minute = rng.random_range(0..60);
+        let second = rng.random_range(0..60);
+        Self::new(hour, minute, second)
+    }
+
+    pub fn hour(&self) -> u8 {
+        self.hour % 12
+    }
+
+    pub fn hour_24(&self) -> u8 {
+        self.hour
+    }
+
+    pub fn minute(&self) -> u8 {
+        self.minute
+    }
+
+    pub fn second(&self) -> u8 {
+        self.second
+    }
+
+    pub fn total_seconds(&self) -> u32 {
+        self.hour_24() as u32 * 3600 + self.minute() as u32 * 60 + self.second() as u32
+    }
+
+    pub fn hour_angle(&self) -> f64 {
+        ((self.hour() as f64 + self.minute() as f64 / 60.0 + self.second() as f64 / 3600.0) / 12.0)
+            * TAU
+    }
+
+    pub fn minute_angle(&self) -> f64 {
+        ((self.minute() as f64 + self.second() as f64 / 60.0) / 60.0) * TAU
+    }
+
+    pub fn second_angle(&self) -> f64 {
+        self.second() as f64 / 60.0 * TAU
+    }
+}
