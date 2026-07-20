@@ -1,13 +1,13 @@
-pub struct Canvas {
+pub(super) struct Canvas {
     width: usize,
     height: usize,
     cells: Vec<char>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Point {
-    pub x: isize,
-    pub y: isize,
+pub(super) struct Point {
+    pub(super) x: isize,
+    pub(super) y: isize,
 }
 
 impl Canvas {
@@ -88,6 +88,18 @@ impl Canvas {
         }
 
         output
+    }
+
+    pub(super) fn width(&self) -> usize {
+        self.width
+    }
+
+    pub(super) fn height(&self) -> usize {
+        self.height
+    }
+
+    pub(super) fn clear(&mut self, ch: char) {
+        self.cells.fill(ch);
     }
 }
 
