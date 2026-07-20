@@ -44,7 +44,7 @@ impl Canvas {
         let mut x = start.x;
         let mut y = start.y;
 
-        let dx = (end.x - start.y).abs();
+        let dx = (end.x - start.x).abs();
         let sx = if start.x < end.x { 1 } else { -1 };
 
         let dy = -((end.y - start.y).abs());
@@ -73,14 +73,61 @@ impl Canvas {
         }
     }
 
+    /// Renders canvas.
+    ///
+    /// # Note
+    /// - `render` does not add a trailing newline after the final row.
     pub(super) fn render(&self) -> String {
-        let mut output = String::with_capacity(self.cells.len() + self.height);
+        let mut output = String::with_capacity(self.cells.len() + self.height - 1);
 
-        for row in self.cells.chunks(self.width) {
+        for (idx, row) in self.cells.chunks(self.width).enumerate() {
+            if idx > 0 {
+                output.push('\n');
+            }
             output.extend(row);
-            output.push('\n');
         }
 
         output
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn draws_horizontal_line() {
+        let mut canvas = Canvas::new(5, 3);
+
+        canvas.line(Point { x: 0, y: 1 }, Point { x: 4, y: 1 }, '#');
+
+        assert_eq!(canvas.render(), "     \n#####\n     ");
+    }
+
+    #[test]
+    fn draws_vertical_line() {
+        let mut canvas = Canvas::new(3, 3);
+
+        canvas.line(Point { x: 1, y: 0 }, Point { x: 1, y: 2 }, '#');
+
+        assert_eq!(canvas.render(), " # \n # \n # ");
+    }
+
+    #[test]
+    fn draws_diagonal_line() {
+        let mut canvas = Canvas::new(3, 3);
+
+        canvas.line(Point { x: 0, y: 0 }, Point { x: 2, y: 2 }, '#');
+
+        assert_eq!(canvas.render(), "#  \n # \n  #");
+    }
+
+    #[test]
+    fn draws_steep_line() {
+        let mut canvas = Canvas::new(3, 5);
+
+        canvas.line(Point { x: 0, y: 0 }, Point { x: 2, y: 4 }, '#');
+
+        assert_eq!(canvas.render(), "#  \n # \n # \n  #\n  #");
     }
 }
