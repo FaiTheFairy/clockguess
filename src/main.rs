@@ -52,21 +52,23 @@ fn main() -> anyhow::Result<()> {
 
         let answer_time: ClockTime = input.parse()?;
 
-        let expected_minutes = time.total_seconds();
-        let answer_minutes = answer_time.total_seconds();
-        let difference = expected_minutes.abs_diff(answer_minutes);
         const SECONDS_PER_CYCLE: u32 = 12 * 60 * 60;
+
+        let expected_seconds = time.total_seconds() % SECONDS_PER_CYCLE;
+        let answer_seconds = answer_time.total_seconds() % SECONDS_PER_CYCLE;
+
+        let difference = expected_seconds.abs_diff(answer_seconds);
         let difference = difference.min(SECONDS_PER_CYCLE - difference);
 
         if difference <= difficulty.seconds_delta() {
             let elapsed = started.elapsed();
             println!(
-                "Correct! off by {} minutes",
-                time.minute().abs_diff(answer_time.minute())
+                "Correct! off by {} minutes\nTime is {time}",
+                difference as f64 / 60.0
             );
             println!("Answered in {}s", elapsed.as_secs_f32())
         } else {
-            println!("Incorrect! time is {}:{:02}", time.hour_12(), time.minute());
+            println!("Incorrect! time is {time}");
         }
 
         input.clear();

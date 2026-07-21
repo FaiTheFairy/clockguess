@@ -83,3 +83,9 @@ impl FromStr for ClockTime {
         Ok(ClockTime::new(hour, minute, second))
     }
 }
+
+impl std::fmt::Display for ClockTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:02}:{:02}:{:02}", self.hour, self.minute, self.second)
+    }
+}
