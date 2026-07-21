@@ -1,5 +1,6 @@
-use std::f64::consts::TAU;
+use std::{f64::consts::TAU, str::FromStr};
 
+use anyhow::Context;
 use rand::RngExt;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -67,5 +68,18 @@ impl ClockTime {
 
     pub fn second_angle(self) -> f64 {
         self.second as f64 / 60.0 * TAU
+    }
+}
+
+impl FromStr for ClockTime {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.trim().split(':');
+        let hour = split.next().context("time is empty")?.parse()?;
+        let minute = split.next().unwrap_or("0").parse()?;
+        let second = split.next().unwrap_or("0").parse()?;
+
+        Ok(ClockTime::new(hour, minute, second))
     }
 }

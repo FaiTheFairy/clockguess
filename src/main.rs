@@ -11,37 +11,40 @@ mod clock;
 mod render;
 
 fn main() -> anyhow::Result<()> {
-    let (width, height) = crossterm::terminal::size()?;
-
-    println!("Terminal size: ({width}x{height})");
-
     let renderer = AsciiRenderer::default();
-    let mut input = String::with_capacity(5);
+    let mut input = String::with_capacity(6);
 
     loop {
+        let (width, height) = crossterm::terminal::size()?;
+
         let time = ClockTime::random();
+        let output = renderer.render(time, width, height.saturating_sub(2));
 
-        let output = renderer.render(time, width, height - 2);
         println!("{output}");
-        println!("What's the time? e.g. '12:30'");
-        let now = std::time::Instant::now();
+        println!("What's the time? For example, 12:30");
 
+        let started = std::time::Instant::now();
+
+        input.clear();
         std::io::stdin().read_line(&mut input)?;
 
-        let (hours, minutes) = input.trim().split_once(':').context("time missing ':'")?;
-        let hours: u8 = hours.parse()?;
-        let minutes = minutes.parse()?;
+        let answer_time: ClockTime = input.parse()?;
 
-        if hours == time.hour_12() && ((time.minute() - 5)..(time.minute() + 5)).contains(&minutes)
-        {
-            let elapsed = now.elapsed();
+        let expected_minutes = time.total_seconds() / 60;
+        let answer_minutes = answer_time.total_seconds() / 60;
+        let difference = expected_minutes.abs_diff(answer_minutes);
+        const MINUTES_PER_CYCLE: u32 = 12 * 60;
+        let difference = difference.min(MINUTES_PER_CYCLE - difference);
+
+        if difference <= 5 {
+            let elapsed = started.elapsed();
             println!(
                 "Correct! off by {} minutes",
-                time.minute().abs_diff(minutes)
+                time.minute().abs_diff(answer_time.minute())
             );
             println!("Answered in {}s", elapsed.as_secs_f32())
         } else {
-            println!("Incorrect! time is {}:{}", time.hour_12(), time.minute());
+            println!("Incorrect! time is {}:{:02}", time.hour_12(), time.minute());
         }
 
         input.clear();
