@@ -10,9 +10,31 @@ use crate::{
 mod clock;
 mod render;
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum Difficulty {
+    NearestHour,
+    NearestFiveMin,
+    NearestMin,
+    NearestThirtySec,
+    Exact,
+}
+
+impl Difficulty {
+    fn seconds_delta(self) -> u32 {
+        match self {
+            Difficulty::NearestHour => 60 * 60,
+            Difficulty::NearestFiveMin => 60 * 5,
+            Difficulty::NearestMin => 60,
+            Difficulty::NearestThirtySec => 30,
+            Difficulty::Exact => 0,
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     let renderer = AsciiRenderer::default();
     let mut input = String::with_capacity(6);
+    let difficulty = Difficulty::NearestFiveMin;
 
     loop {
         let (width, height) = crossterm::terminal::size()?;
@@ -30,13 +52,13 @@ fn main() -> anyhow::Result<()> {
 
         let answer_time: ClockTime = input.parse()?;
 
-        let expected_minutes = time.total_seconds() / 60;
-        let answer_minutes = answer_time.total_seconds() / 60;
+        let expected_minutes = time.total_seconds();
+        let answer_minutes = answer_time.total_seconds();
         let difference = expected_minutes.abs_diff(answer_minutes);
-        const MINUTES_PER_CYCLE: u32 = 12 * 60;
-        let difference = difference.min(MINUTES_PER_CYCLE - difference);
+        const SECONDS_PER_CYCLE: u32 = 12 * 60 * 60;
+        let difference = difference.min(SECONDS_PER_CYCLE - difference);
 
-        if difference <= 5 {
+        if difference <= difficulty.seconds_delta() {
             let elapsed = started.elapsed();
             println!(
                 "Correct! off by {} minutes",
