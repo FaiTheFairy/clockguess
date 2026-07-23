@@ -87,7 +87,7 @@ impl ClockTime {
     ///
     /// For example, 11:59 and 12:01 are two minutes apart rather than
     /// eleven hours and fifty-eight minutes apart.
-    fn analog_difference(self, other: Self) -> u32 {
+    pub fn analog_difference(self, other: Self) -> u32 {
         let direct_difference = self.analog_seconds().abs_diff(other.analog_seconds());
 
         direct_difference.min(SECONDS_PER_CLOCK_CYCLE - direct_difference)
