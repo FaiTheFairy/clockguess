@@ -120,17 +120,55 @@ impl ClockTime {
             second: self.second,
         }
     }
-}
 
-impl FromStr for ClockTime {
-    type Err = anyhow::Error;
+    fn parse_compact(input: &str) -> anyhow::Result<Self> {
+        let (hour, minute, second) = match input.len() {
+            1 | 2 => {
+                let hour = input.parse().context("hour must be a number")?;
+                (hour, 0, 0)
+            }
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
+            3 => {
+                let hour = input[..1].parse().context("hour must be a number")?;
 
-        ensure!(!s.is_empty(), "time cannot be empty");
+                let minute = input[1..].parse().context("minute must be a number")?;
 
-        let mut parts = s.trim().split(&[':', ' ', '.']);
+                (hour, minute, 0)
+            }
+
+            4 => {
+                let hour = input[..2].parse().context("hour must be a number")?;
+
+                let minute = input[2..].parse().context("minute must be a number")?;
+
+                (hour, minute, 0)
+            }
+
+            5 => {
+                let hour = input[..1].parse().context("hour must be a number")?;
+                let minute = input[1..3].parse().context("minute must be a number")?;
+                let second = input[3..].parse().context("second must be a number")?;
+                (hour, minute, second)
+            }
+
+            6 => {
+                let hour = input[..2].parse().context("hour must be a number")?;
+                let minute = input[2..4].parse().context("minute must be a number")?;
+                let second = input[4..].parse().context("second must be a number")?;
+                (hour, minute, second)
+            }
+
+            _ => anyhow::bail!("compact time must use H, HH, HMM, HHMM, HMMSS, or HHMMSS"),
+        };
+
+        Self::try_new(hour, minute, second)
+    }
+
+    fn parse_separated(input: &str) -> anyhow::Result<ClockTime> {
+        let mut parts = input
+            .trim()
+            .split(&[':', ' ', '.'])
+            .filter(|part| !part.is_empty());
 
         let hour = parts
             .next()
@@ -150,9 +188,28 @@ impl FromStr for ClockTime {
             .parse()
             .context("second must be a number")?;
 
-        ensure!(parts.next().is_none(), "use HH, HH:MM, or HH:MM:SS format");
+        ensure!(
+            parts.next().is_none(),
+            "use HH, HH:MM, HH:MM:SS, or compact military time"
+        );
 
         Self::try_new(hour, minute, second)
+    }
+}
+
+impl FromStr for ClockTime {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let s = s.trim();
+
+        ensure!(!s.is_empty(), "time cannot be empty");
+
+        if s.chars().all(|ch| ch.is_ascii_digit()) {
+            return Self::parse_compact(s);
+        }
+
+        Self::parse_separated(s)
     }
 }
 
@@ -213,5 +270,37 @@ mod tests {
         let afternoon = ClockTime::new(15, 15, 0);
 
         assert_eq!(morning.analog_difference(afternoon), 0);
+    }
+
+    #[test]
+    fn parses_compact_times() {
+        assert_eq!(
+            "920".parse::<ClockTime>().unwrap(),
+            ClockTime::new(9, 20, 0)
+        );
+        assert_eq!(
+            "1320".parse::<ClockTime>().unwrap(),
+            ClockTime::new(13, 20, 0)
+        );
+        assert_eq!(
+            "132045".parse::<ClockTime>().unwrap(),
+            ClockTime::new(13, 20, 45)
+        );
+    }
+
+    #[test]
+    fn parses_multiple_separators() {
+        assert_eq!(
+            "9:20".parse::<ClockTime>().unwrap(),
+            ClockTime::new(9, 20, 0)
+        );
+        assert_eq!(
+            "9 20".parse::<ClockTime>().unwrap(),
+            ClockTime::new(9, 20, 0)
+        );
+        assert_eq!(
+            "9.20".parse::<ClockTime>().unwrap(),
+            ClockTime::new(9, 20, 0)
+        );
     }
 }
