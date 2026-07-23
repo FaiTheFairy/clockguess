@@ -3,7 +3,7 @@ use crate::clock::ClockTime;
 pub trait ClockRenderer {
     type Output;
 
-    fn render(&self, time: ClockTime, width: u16, height: u16) -> Self::Output;
+    fn render(&self, time: ClockTime, width: u16, height: u16, hide_seconds: bool) -> Self::Output;
 }
 
 mod ascii;

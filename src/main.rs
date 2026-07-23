@@ -6,25 +6,28 @@ use std::{
 use anyhow::Context;
 
 use crate::{
+    cli::Cli,
     clock::ClockTime,
     render::{AsciiRenderer, ClockRenderer},
 };
 
+use clap::{Parser, ValueEnum};
 use crossterm::{
     cursor::MoveTo,
     execute,
     terminal::{Clear, ClearType},
 };
 
+mod cli;
 mod clock;
 mod render;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
 enum Difficulty {
-    NearestHour,
-    NearestFiveMinutes,
-    NearestMinute,
-    NearestThirtySeconds,
+    Hour,
+    FiveMinutes,
+    Minute,
+    ThirtySeconds,
     Exact,
 }
 
@@ -32,10 +35,10 @@ impl Difficulty {
     /// The interval to which the player is expected to read the clock
     fn precision_seconds(self) -> u32 {
         match self {
-            Difficulty::NearestHour => 60 * 60,
-            Difficulty::NearestFiveMinutes => 5 * 60,
-            Difficulty::NearestMinute => 60,
-            Difficulty::NearestThirtySeconds => 30,
+            Difficulty::Hour => 60 * 60,
+            Difficulty::FiveMinutes => 5 * 60,
+            Difficulty::Minute => 60,
+            Difficulty::ThirtySeconds => 30,
             Difficulty::Exact => 0,
         }
     }
@@ -47,16 +50,26 @@ impl Difficulty {
 
     fn description(self) -> &'static str {
         match self {
-            Difficulty::NearestHour => "nearest hour",
-            Difficulty::NearestFiveMinutes => "nearest five minutes",
-            Difficulty::NearestMinute => "nearest minute",
-            Difficulty::NearestThirtySeconds => "nearest thirty seconds",
+            Difficulty::Hour => "nearest hour",
+            Difficulty::FiveMinutes => "nearest five minutes",
+            Difficulty::Minute => "nearest minute",
+            Difficulty::ThirtySeconds => "nearest thirty seconds",
             Difficulty::Exact => "exact time",
         }
     }
 
     fn accepts(self, expected: ClockTime, answer: ClockTime) -> bool {
         expected.analog_difference(answer) <= self.tolerance_seconds()
+    }
+
+    fn hide_seconds(self) -> bool {
+        match self {
+            Difficulty::ThirtySeconds => false,
+            Difficulty::Exact => false,
+            Difficulty::Minute => false,
+            Difficulty::Hour => true,
+            Difficulty::FiveMinutes => true,
+        }
     }
 }
 
@@ -66,37 +79,50 @@ enum PlayerInput {
 }
 
 fn main() -> anyhow::Result<()> {
-    let renderer = AsciiRenderer::default();
-    let difficulty = Difficulty::NearestFiveMinutes;
+    let cli = Cli::parse();
+
+    let renderer = AsciiRenderer::with_theme(2.0, cli.theme.into());
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();
     let mut input = String::with_capacity(16);
 
-    loop {
-        let should_continue = play_round(&renderer, difficulty, &stdin, &mut stdout, &mut input)?;
-
-        if !should_continue {
-            break;
+    match cli.rounds {
+        Some(rounds) => {
+            for _ in 0..rounds {
+                if !play_round(&renderer, &cli, &stdin, &mut stdout, &mut input)? {
+                    break;
+                }
+            }
         }
+        None => while play_round(&renderer, &cli, &stdin, &mut stdout, &mut input)? {},
     }
     Ok(())
 }
 
 fn play_round(
     renderer: &AsciiRenderer,
-    difficulty: Difficulty,
+    cli: &Cli,
     stdin: &io::Stdin,
     stdout: &mut io::Stdout,
     input: &mut String,
 ) -> anyhow::Result<bool> {
-    clear_terminal(stdout)?;
+    if !cli.no_clear {
+        clear_terminal(stdout)?;
+    }
+
+    let difficulty = cli.difficulty;
 
     let (width, height) = crossterm::terminal::size()?;
+
+    // override with cli width and height if given
+    let width = cli.width.unwrap_or(width);
+    let height = cli.height.unwrap_or(height);
+
     let clock_height = height.saturating_sub(4);
 
     let expected = ClockTime::random();
-    let rendered_clock = renderer.render(expected, width, clock_height);
+    let rendered_clock = renderer.render(expected, width, clock_height, difficulty.hide_seconds());
 
     writeln!(stdout, "{rendered_clock}")?;
     writeln!(

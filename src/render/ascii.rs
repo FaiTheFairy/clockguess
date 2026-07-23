@@ -3,6 +3,7 @@ use std::f64::consts::TAU;
 use crossterm::style::{Attribute, Color, ContentStyle, Stylize};
 
 use crate::{
+    cli::Theme,
     clock::ClockTime,
     render::{
         ClockRenderer,
@@ -32,6 +33,37 @@ pub struct AsciiTheme {
 
     pub center_ch: char,
     pub center_style: ContentStyle,
+}
+
+impl AsciiTheme {
+    pub fn classic() -> Self {
+        Self::default()
+    }
+
+    pub fn monochrome() -> Self {
+        Self {
+            minute_tick_style: ContentStyle::default(),
+            hour_number_style: ContentStyle::default(),
+            hour_hand_style: ContentStyle::default(),
+            minute_hand_style: ContentStyle::default(),
+            second_hand_style: ContentStyle::default(),
+            center_style: ContentStyle::default(),
+
+            ..Self::default()
+        }
+    }
+
+    pub fn unicode() -> Self {
+        Self {
+            minute_tick_ch: '.',
+            hour_hand_ch: '█',
+            minute_hand_ch: '█',
+            second_hand_ch: '│',
+            center_ch: '●',
+
+            ..Self::default()
+        }
+    }
 }
 
 impl Default for AsciiTheme {
@@ -65,6 +97,16 @@ impl Default for AsciiTheme {
             center_style: ContentStyle::default()
                 .with(Color::White)
                 .attribute(Attribute::Bold),
+        }
+    }
+}
+
+impl From<Theme> for AsciiTheme {
+    fn from(value: Theme) -> Self {
+        match value {
+            Theme::Classic => Self::classic(),
+            Theme::Monochrome => Self::monochrome(),
+            Theme::Unicode => Self::unicode(),
         }
     }
 }
@@ -215,7 +257,7 @@ impl AsciiRenderer {
 impl ClockRenderer for AsciiRenderer {
     type Output = String;
 
-    fn render(&self, time: ClockTime, width: u16, height: u16) -> String {
+    fn render(&self, time: ClockTime, width: u16, height: u16, hide_seconds: bool) -> String {
         let mut canvas = Canvas::new(width, height);
         let layout = ClockLayout::new(width, height, self.aspect_ratio);
 
@@ -223,7 +265,9 @@ impl ClockRenderer for AsciiRenderer {
         self.draw_numbers(&mut canvas, layout);
         self.draw_hour_hand(&mut canvas, layout, time);
         self.draw_minute_hand(&mut canvas, layout, time);
-        self.draw_second_hand(&mut canvas, layout, time);
+        if !hide_seconds {
+            self.draw_second_hand(&mut canvas, layout, time);
+        }
 
         // Redraw the center so the pivot remains visible.
         let Point { x, y } = layout.center();
