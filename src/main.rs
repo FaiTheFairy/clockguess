@@ -133,7 +133,7 @@ fn play_round(
         )?;
     }
 
-    writeln!(stdout, "The time was {expected}")?;
+    writeln!(stdout, "The time was {}", expected.to_12_hour())?;
     writeln!(stdout, "Answered in {:.1} seconds.", elapsed.as_secs_f32())?;
     writeln!(stdout)?;
     write!(

@@ -112,6 +112,14 @@ impl ClockTime {
     pub fn second_angle(self) -> f64 {
         f64::from(self.second) / 60.0 * TAU
     }
+
+    pub fn to_12_hour(self) -> Self {
+        Self {
+            hour: self.hour_12(),
+            minute: self.minute,
+            second: self.second,
+        }
+    }
 }
 
 impl FromStr for ClockTime {
@@ -122,7 +130,7 @@ impl FromStr for ClockTime {
 
         ensure!(!s.is_empty(), "time cannot be empty");
 
-        let mut parts = s.trim().split(':');
+        let mut parts = s.trim().split(&[':', ' ', '.']);
 
         let hour = parts
             .next()
