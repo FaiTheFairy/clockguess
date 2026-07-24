@@ -6,8 +6,38 @@ use crate::difficulty::Difficulty;
 const MIN_WIDTH: i64 = 20;
 const MIN_HEIGHT: i64 = 10;
 
+// Source - https://stackoverflow.com/a/79614957
+// Posted by roylaurie
+// Retrieved 2026-07-24, License - CC BY-SA 4.0
+
+use clap::builder::styling::{AnsiColor, Effects, Style, Styles};
+
+//const NOP: Style = Style::new();
+const HEADER: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
+const USAGE: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
+const LITERAL: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
+const PLACEHOLDER: Style = AnsiColor::Cyan.on_default();
+const ERROR: Style = AnsiColor::Red.on_default().effects(Effects::BOLD);
+// const WARN: Style = AnsiColor::Yellow.on_default().effects(Effects::BOLD);
+// const NOTE: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
+// const GOOD: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
+const VALID: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
+const INVALID: Style = AnsiColor::Yellow.on_default().effects(Effects::BOLD);
+
+/// Cargo's color style
+/// [source](https://github.com/crate-ci/clap-cargo/blob/master/src/style.rs)
+const CARGO_STYLING: Styles = Styles::styled()
+    .header(HEADER)
+    .usage(USAGE)
+    .literal(LITERAL)
+    .placeholder(PLACEHOLDER)
+    .error(ERROR)
+    .valid(VALID)
+    .invalid(INVALID);
+
 #[derive(Parser, Debug)]
 #[command(version, about = "Practice reading an analog clock")]
+#[clap(styles = CARGO_STYLING)]
 pub struct Cli {
     /// Gameplay mode.
     #[arg(short, long, value_enum, default_value_t)]
