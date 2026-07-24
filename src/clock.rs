@@ -3,12 +3,12 @@ use std::{f64::consts::TAU, str::FromStr};
 use anyhow::{Context, ensure};
 use rand::RngExt;
 
-const HOURS_PER_CLOCK_CYCLE: u32 = 12;
-const MINUTES_PER_HOUR: u32 = 60;
-const SECONDS_PER_MINUTE: u32 = 60;
+pub const HOURS_PER_CLOCK_CYCLE: u32 = 12;
+pub const MINUTES_PER_HOUR: u32 = 60;
+pub const SECONDS_PER_MINUTE: u32 = 60;
 
-const SECONDS_PER_HOUR: u32 = MINUTES_PER_HOUR * SECONDS_PER_MINUTE;
-const SECONDS_PER_CLOCK_CYCLE: u32 = HOURS_PER_CLOCK_CYCLE * SECONDS_PER_HOUR;
+pub const SECONDS_PER_HOUR: u32 = MINUTES_PER_HOUR * SECONDS_PER_MINUTE;
+pub const SECONDS_PER_CLOCK_CYCLE: u32 = HOURS_PER_CLOCK_CYCLE * SECONDS_PER_HOUR;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct ClockTime {
@@ -18,9 +18,10 @@ pub struct ClockTime {
 }
 
 impl ClockTime {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new(hour: u8, minute: u8, second: u8) -> Self {
-        Self::try_new(hour, minute, second).unwrap()
+        Self::try_new(hour, minute, second)
+            .expect("clock components must be within their valid ranges")
     }
 
     pub fn try_new(hour: u8, minute: u8, second: u8) -> anyhow::Result<Self> {
@@ -50,21 +51,6 @@ impl ClockTime {
             0 => 12,
             hour => hour,
         }
-    }
-
-    #[allow(dead_code)]
-    pub const fn hour_24(self) -> u8 {
-        self.hour
-    }
-
-    #[allow(dead_code)]
-    pub const fn minute(self) -> u8 {
-        self.minute
-    }
-
-    #[allow(dead_code)]
-    pub const fn second(self) -> u8 {
-        self.second
     }
 
     pub fn total_seconds(self) -> u32 {
@@ -108,12 +94,12 @@ impl ClockTime {
         f64::from(self.second) / 60.0 * TAU
     }
 
-    pub const fn to_12_hour(self) -> Self {
-        Self {
+    pub const fn display_analog(self) -> ClockTimeDisplayAnalog {
+        ClockTimeDisplayAnalog(Self {
             hour: self.hour_12(),
             minute: self.minute,
             second: self.second,
-        }
+        })
     }
 
     fn parse_compact(input: &str) -> anyhow::Result<Self> {
@@ -213,6 +199,20 @@ impl FromStr for ClockTime {
 impl std::fmt::Display for ClockTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:02}:{:02}:{:02}", self.hour, self.minute, self.second)
+    }
+}
+
+pub struct ClockTimeDisplayAnalog(ClockTime);
+
+impl std::fmt::Display for ClockTimeDisplayAnalog {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{:02}:{:02}:{:02}",
+            self.0.hour_12(),
+            self.0.minute,
+            self.0.second
+        )
     }
 }
 

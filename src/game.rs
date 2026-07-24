@@ -1,3 +1,6 @@
+use std::io::{BufRead, Write};
+use std::time::{Duration, Instant};
+
 use anyhow::Context;
 use crossterm::{
     cursor::MoveTo,
@@ -5,14 +8,19 @@ use crossterm::{
     terminal::{Clear, ClearType},
 };
 
-use std::io::{BufRead, Write};
-use std::time::Instant;
+use crate::cli::GameMode;
+use crate::score::{RoundOutcome, SessionStats};
+use crate::{
+    cli::Cli,
+    clock::{ClockTime, SECONDS_PER_MINUTE},
+    render::{AsciiRenderer, ClockRenderer},
+};
 
-use crate::{AsciiRenderer, Cli, clock::ClockTime, render::ClockRenderer};
+const UI_ROWS: u16 = 4;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum RoundControl {
-    Continue,
+    Completed(RoundOutcome),
     Quit,
 }
 
@@ -30,19 +38,125 @@ pub fn run(
 ) -> anyhow::Result<()> {
     let mut buffer = String::with_capacity(16);
 
-    match cli.rounds {
-        Some(rounds) => {
-            for _ in 0..rounds {
-                if play_round(renderer, cli, input, output, &mut buffer)? == RoundControl::Quit {
-                    break;
-                }
+    let stats = match cli.mode {
+        GameMode::Practice => run_practice(cli, renderer, input, output, &mut buffer)?,
+        GameMode::Challenge => run_challenge(cli, renderer, input, output, &mut buffer)?,
+        GameMode::RapidFire => run_rapid_fire(cli, renderer, input, output, &mut buffer)?,
+    };
+
+    print_summary(output, &stats)
+}
+
+fn run_practice(
+    cli: &Cli,
+    renderer: &AsciiRenderer,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+    buffer: &mut String,
+) -> anyhow::Result<SessionStats> {
+    let mut stats = SessionStats::default();
+
+    loop {
+        match play_round(renderer, cli, input, output, buffer)? {
+            RoundControl::Completed(outcome) => {
+                stats.record(outcome, cli.difficulty);
             }
+            RoundControl::Quit => break,
         }
-        None => {
-            while play_round(renderer, cli, input, output, &mut buffer)? == RoundControl::Continue {
-            }
+
+        if ask_to_continue(input, output, buffer)? == ContinueChoice::Quit {
+            break;
         }
     }
+
+    Ok(stats)
+}
+
+fn run_challenge(
+    cli: &Cli,
+    renderer: &AsciiRenderer,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+    buffer: &mut String,
+) -> anyhow::Result<SessionStats> {
+    let mut stats = SessionStats::default();
+
+    for round in 1..=cli.rounds {
+        writeln!(output, "Round {round}/{}", cli.rounds)?;
+
+        match play_round(renderer, cli, input, output, buffer)? {
+            RoundControl::Completed(outcome) => {
+                stats.record(outcome, cli.difficulty);
+            }
+            RoundControl::Quit => break,
+        }
+    }
+
+    Ok(stats)
+}
+
+fn run_rapid_fire(
+    cli: &Cli,
+    renderer: &AsciiRenderer,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+    buffer: &mut String,
+) -> anyhow::Result<SessionStats> {
+    let mut stats = SessionStats::default();
+
+    let duration = Duration::from_secs(cli.rapid_seconds);
+    let started = Instant::now();
+    let deadline = started + duration;
+
+    while Instant::now() < deadline {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+
+        writeln!(
+            output,
+            "Time remaining: {:.1} seconds",
+            remaining.as_secs_f64()
+        )?;
+
+        match play_round(renderer, cli, input, output, buffer)? {
+            RoundControl::Completed(outcome) => {
+                stats.record(outcome, cli.difficulty);
+            }
+            RoundControl::Quit => break,
+        }
+    }
+
+    writeln!(output, "Time's up!")?;
+
+    Ok(stats)
+}
+
+fn print_summary(output: &mut impl Write, stats: &SessionStats) -> anyhow::Result<()> {
+    writeln!(output)?;
+    writeln!(output, "Session complete")?;
+    writeln!(output, "----------------")?;
+    writeln!(output, "Score: {}", stats.points())?;
+    writeln!(output, "Correct: {}", stats.points())?;
+    writeln!(output, "Incorrect: {}", stats.points())?;
+    writeln!(output, "Exact answers: {}", stats.points())?;
+
+    match stats.accuracy() {
+        Some(accuracy) => writeln!(output, "Accuracy: {:.1}%", accuracy * 100.0)?,
+        None => writeln!(output, "Accuracy: N/A")?,
+    }
+
+    match stats.average_answer_time() {
+        Some(average) => writeln!(
+            output,
+            "Average answer time: {:.1} seconds",
+            average.as_secs_f64()
+        )?,
+        None => writeln!(output, "Average answer time: N/A")?,
+    }
+
+    if let Some(best) = stats.best_answer_time() {
+        writeln!(output, "Fastest answer: {:.1} seconds", best.as_secs_f64())?;
+    }
+
     Ok(())
 }
 
@@ -59,19 +173,20 @@ fn play_round(
 
     let difficulty = cli.difficulty;
 
-    let (width, height) = crossterm::terminal::size()?;
+    let (detected_width, detected_height) = crossterm::terminal::size()?;
 
     // override with cli width and height if given
-    let width = cli.width.unwrap_or(width);
-    let height = cli.height.unwrap_or(height);
+    let canvas_width = cli.width.unwrap_or(detected_width);
+    let terminal_height = cli.height.unwrap_or(detected_height);
 
-    let clock_height = height
-        .checked_sub(4)
+    let canvas_height = terminal_height
+        .checked_sub(UI_ROWS)
         .context("terminal is too short to display the clock; increase its height")?;
 
     let expected = ClockTime::random();
     let show_seconds = cli.show_seconds.resolve(difficulty);
-    let rendered_clock = renderer.render(expected, width, clock_height, show_seconds);
+
+    let rendered_clock = renderer.render(expected, canvas_width, canvas_height, show_seconds);
 
     writeln!(output, "{rendered_clock}")?;
     writeln!(
@@ -90,38 +205,51 @@ fn play_round(
     };
 
     let elapsed = started.elapsed();
-    let difference = expected.analog_difference(answer);
+    let difference_seconds = expected.analog_difference(answer);
+    let correct = difficulty.accepts(expected, answer);
 
     writeln!(output)?;
-    if difficulty.accepts(expected, answer) {
-        if difference == 0 {
+
+    if correct {
+        if difference_seconds == 0 {
             writeln!(output, "Correct! Exact answer.")?;
         } else {
             writeln!(
                 output,
                 "Correct! Your answer was off by {}.",
-                format_duration(difference)
+                format_duration(difference_seconds)
             )?;
         }
     } else {
         writeln!(
             output,
             "Incorrect. Your answer was off by {}.",
-            format_duration(difference)
+            format_duration(difference_seconds)
         )?;
     }
 
-    writeln!(output, "The time was {}", expected.to_12_hour())?;
-    writeln!(output, "Answered in {:.1} seconds.", elapsed.as_secs_f32())?;
+    writeln!(output, "The time was {}", expected.display_analog())?;
+    writeln!(output, "Answered in {:.1} seconds.", elapsed.as_secs_f64())?;
     writeln!(output)?;
-    ask_to_continue(input, output, buffer)
+
+    Ok(RoundControl::Completed(RoundOutcome {
+        difference_seconds,
+        elapsed,
+        correct,
+    }))
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum ContinueChoice {
+    Continue,
+    Quit,
 }
 
 fn ask_to_continue(
     input: &mut impl BufRead,
     output: &mut impl Write,
     buffer: &mut String,
-) -> anyhow::Result<RoundControl> {
+) -> anyhow::Result<ContinueChoice> {
     write!(
         output,
         "Press Enter for another clock, or q then Enter to quit: "
@@ -131,13 +259,13 @@ fn ask_to_continue(
     buffer.clear();
 
     if input.read_line(buffer)? == 0 {
-        return Ok(RoundControl::Quit);
+        return Ok(ContinueChoice::Quit);
     }
 
     Ok(if buffer.trim().eq_ignore_ascii_case("q") {
-        RoundControl::Quit
+        ContinueChoice::Quit
     } else {
-        RoundControl::Continue
+        ContinueChoice::Continue
     })
 }
 
@@ -176,8 +304,8 @@ fn clear_terminal(output: &mut impl Write) -> anyhow::Result<()> {
 }
 
 fn format_duration(total_seconds: u32) -> String {
-    let minutes = total_seconds / 60;
-    let seconds = total_seconds % 60;
+    let minutes = total_seconds / SECONDS_PER_MINUTE;
+    let seconds = total_seconds % SECONDS_PER_MINUTE;
 
     match (minutes, seconds) {
         (0, seconds) => unit(seconds, "second", "seconds"),
@@ -247,11 +375,11 @@ mod tests {
 
         let result = ask_to_continue(&mut input, &mut output, &mut buffer).unwrap();
 
-        assert_eq!(result, RoundControl::Quit);
+        assert_eq!(result, ContinueChoice::Quit);
     }
 
     #[test]
-    fn test_fromat_duration() {
+    fn fromat_duration() {
         assert_eq!(format_duration(0), "0 seconds");
         assert_eq!(format_duration(1), "1 second");
         assert_eq!(format_duration(60), "1 minute");

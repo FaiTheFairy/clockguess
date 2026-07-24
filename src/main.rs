@@ -1,4 +1,4 @@
-use std::io::{self};
+use std::io;
 
 use crate::{cli::Cli, render::AsciiRenderer};
 
@@ -9,6 +9,7 @@ mod clock;
 mod difficulty;
 mod game;
 mod render;
+mod score;
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
@@ -17,5 +18,9 @@ fn main() -> anyhow::Result<()> {
 
     let stdin = io::stdin();
     let stdout = io::stdout();
-    game::run(&cli, &renderer, &mut stdin.lock(), &mut stdout.lock())
+
+    let mut input = stdin.lock();
+    let mut output = stdout.lock();
+
+    game::run(&cli, &renderer, &mut input, &mut output)
 }

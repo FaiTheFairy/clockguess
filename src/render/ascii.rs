@@ -18,11 +18,13 @@ pub struct AsciiTheme {
     pub(crate) minute_tick_ch: char,
     pub(crate) minute_tick_style: ContentStyle,
 
+    /// Radius as a fraction of the clock-face radius, in `0.0..=1.0`.
     pub(crate) hour_number_radius: f64,
     pub(crate) hour_number_style: ContentStyle,
 
     pub(crate) hour_hand_ch: char,
     pub(crate) hour_hand_style: ContentStyle,
+    /// Hand length as a fraction of the clock-face radius, in `0.0..=1.0`
     pub(crate) hour_hand_length: f64,
 
     pub(crate) minute_hand_ch: char,
@@ -128,6 +130,12 @@ struct ClockLayout {
     radius_y: f64,
 }
 
+#[allow(clippy::cast_possible_truncation)]
+const fn round_to_coord(value: f64) -> isize {
+    debug_assert!(value.is_finite());
+    value.round() as isize
+}
+
 impl ClockLayout {
     fn new(width: u16, height: u16, aspect_ratio: f64) -> Self {
         let center_x = (f64::from(width) - 1.0) / 2.0;
@@ -147,23 +155,17 @@ impl ClockLayout {
         }
     }
 
-    #[allow(clippy::cast_possible_truncation)]
     const fn center(self) -> Point {
         Point {
-            x: self.center_x.round() as isize,
-            y: self.center_y.round() as isize,
+            x: round_to_coord(self.center_x),
+            y: round_to_coord(self.center_y),
         }
     }
 
-    #[allow(clippy::cast_possible_truncation)]
     fn point_at(self, angle: f64, length: f64) -> Point {
         Point {
-            x: (self.radius_x * length)
-                .mul_add(angle.sin(), self.center_x)
-                .round() as isize,
-            y: (self.radius_y * length)
-                .mul_add(-angle.cos(), self.center_y)
-                .round() as isize,
+            x: round_to_coord((self.radius_x * length).mul_add(angle.sin(), self.center_x)),
+            y: round_to_coord((self.radius_y * length).mul_add(-angle.cos(), self.center_y)),
         }
     }
 }
