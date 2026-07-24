@@ -9,9 +9,6 @@ clap = { version = "4", features = ["derive"] }
 crossterm = "0.29"
 rand = "0.10"
 
-[lints.rust]
-unused = "allow"
-
 [lints.clippy]
 pedantic = "warn"
 nursery = "warn"

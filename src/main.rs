@@ -16,6 +16,6 @@ fn main() -> anyhow::Result<()> {
     let renderer = AsciiRenderer::with_theme(2.0, cli.theme.into());
 
     let stdin = io::stdin();
-    let mut stdout = io::stdout();
+    let stdout = io::stdout();
     game::run(&cli, &renderer, &mut stdin.lock(), &mut stdout.lock())
 }

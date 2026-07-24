@@ -161,10 +161,6 @@ impl ClockLayout {
 }
 
 impl AsciiRenderer {
-    pub fn new(aspect_ratio: f64) -> Self {
-        Self::with_theme(aspect_ratio, AsciiTheme::default())
-    }
-
     pub fn with_theme(aspect_ratio: f64, theme: AsciiTheme) -> Self {
         assert!(
             aspect_ratio.is_finite() && aspect_ratio > 0.0,
@@ -182,10 +178,12 @@ impl AsciiRenderer {
         }
     }
 
+    #[allow(dead_code)]
     pub fn theme(&self) -> &AsciiTheme {
         &self.theme
     }
 
+    #[allow(dead_code)]
     pub fn theme_mut(&mut self) -> &mut AsciiTheme {
         &mut self.theme
     }

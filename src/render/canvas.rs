@@ -36,6 +36,7 @@ pub(super) struct Point {
     pub(super) y: isize,
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub(super) enum TextAlign {
     Left,
@@ -69,6 +70,7 @@ impl Canvas {
         self.cells[y * self.width + x] = cell;
     }
 
+    #[allow(dead_code)]
     pub(super) fn set(&mut self, x: isize, y: isize, ch: char) {
         self.set_cell(x, y, Cell::plain(ch));
     }
@@ -143,6 +145,7 @@ impl Canvas {
         }
     }
 
+    #[allow(dead_code)]
     pub(super) fn line(&mut self, start: Point, end: Point, ch: char) {
         self.line_cell(start, end, Cell::plain(ch));
     }
@@ -164,14 +167,17 @@ impl Canvas {
         String::from_utf8(output).expect("crossterm generated valid UTF-8")
     }
 
+    #[allow(dead_code)]
     pub(super) fn width(&self) -> usize {
         self.width
     }
 
+    #[allow(dead_code)]
     pub(super) fn height(&self) -> usize {
         self.height
     }
 
+    #[allow(dead_code)]
     pub(super) fn clear(&mut self, ch: char) {
         self.cells.fill(Cell::plain(ch));
     }

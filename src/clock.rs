@@ -3,7 +3,6 @@ use std::{f64::consts::TAU, str::FromStr};
 use anyhow::{Context, ensure};
 use rand::RngExt;
 
-const HOURS_PER_DAY: u32 = 12;
 const HOURS_PER_CLOCK_CYCLE: u32 = 12;
 const MINUTES_PER_HOUR: u32 = 60;
 const SECONDS_PER_MINUTE: u32 = 60;
@@ -19,6 +18,7 @@ pub struct ClockTime {
 }
 
 impl ClockTime {
+    #[allow(dead_code)]
     pub fn new(hour: u8, minute: u8, second: u8) -> Self {
         assert!(hour < 24, "hour must be between 0 and 23");
         assert!(minute < 60, "minute must be between 0 and 59");
@@ -60,14 +60,17 @@ impl ClockTime {
         }
     }
 
+    #[allow(dead_code)]
     pub fn hour_24(self) -> u8 {
         self.hour
     }
 
+    #[allow(dead_code)]
     pub fn minute(self) -> u8 {
         self.minute
     }
 
+    #[allow(dead_code)]
     pub fn second(self) -> u8 {
         self.second
     }
