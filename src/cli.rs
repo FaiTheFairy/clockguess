@@ -1,6 +1,6 @@
 use clap::{Parser, ValueEnum};
 
-use crate::Difficulty;
+use crate::difficulty::Difficulty;
 
 const MIN_WIDTH: i64 = 20;
 const MIN_HEIGHT: i64 = 10;
