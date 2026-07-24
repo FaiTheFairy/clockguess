@@ -41,7 +41,7 @@ pub struct Cli {
     #[arg(long)]
     pub no_clear: bool,
 
-    /// Whether or not to show seconds hand. Auto mode uses difficulty to decide.
+    /// Whether or not to show seconds hand.
     #[arg(long, value_enum, default_value_t)]
     pub show_seconds: SecondHandMode,
 }
