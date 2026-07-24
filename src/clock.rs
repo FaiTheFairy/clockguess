@@ -45,7 +45,7 @@ impl ClockTime {
         }
     }
 
-    pub fn hour_12(self) -> u8 {
+    pub const fn hour_12(self) -> u8 {
         match self.hour % 12 {
             0 => 12,
             hour => hour,
@@ -53,17 +53,17 @@ impl ClockTime {
     }
 
     #[allow(dead_code)]
-    pub fn hour_24(self) -> u8 {
+    pub const fn hour_24(self) -> u8 {
         self.hour
     }
 
     #[allow(dead_code)]
-    pub fn minute(self) -> u8 {
+    pub const fn minute(self) -> u8 {
         self.minute
     }
 
     #[allow(dead_code)]
-    pub fn second(self) -> u8 {
+    pub const fn second(self) -> u8 {
         self.second
     }
 
@@ -108,7 +108,7 @@ impl ClockTime {
         f64::from(self.second) / 60.0 * TAU
     }
 
-    pub fn to_12_hour(self) -> Self {
+    pub const fn to_12_hour(self) -> Self {
         Self {
             hour: self.hour_12(),
             minute: self.minute,
@@ -125,7 +125,7 @@ impl ClockTime {
 
         let (hour, minute, second) = match input.len() {
             1 | 2 => {
-                let hour = parse_component(&input, "hour")?;
+                let hour = parse_component(input, "hour")?;
                 (hour, 0, 0)
             }
 
@@ -161,7 +161,7 @@ impl ClockTime {
         Self::try_new(hour, minute, second)
     }
 
-    fn parse_separated(input: &str) -> anyhow::Result<ClockTime> {
+    fn parse_separated(input: &str) -> anyhow::Result<Self> {
         let mut parts = input
             .trim()
             .split(&[':', ' ', '.'])

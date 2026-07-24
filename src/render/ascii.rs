@@ -14,7 +14,7 @@ use crate::{
 const DEFAULT_TERMINAL_CELL_ASPECT_RATIO: f64 = 2.0;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub(crate) struct AsciiTheme {
+pub struct AsciiTheme {
     pub(crate) minute_tick_ch: char,
     pub(crate) minute_tick_style: ContentStyle,
 
@@ -147,17 +147,23 @@ impl ClockLayout {
         }
     }
 
-    fn center(self) -> Point {
+    #[allow(clippy::cast_possible_truncation)]
+    const fn center(self) -> Point {
         Point {
             x: self.center_x.round() as isize,
             y: self.center_y.round() as isize,
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn point_at(self, angle: f64, length: f64) -> Point {
         Point {
-            x: (self.center_x + self.radius_x * length * angle.sin()).round() as isize,
-            y: (self.center_y - self.radius_y * length * angle.cos()).round() as isize,
+            x: (self.radius_x * length)
+                .mul_add(angle.sin(), self.center_x)
+                .round() as isize,
+            y: (self.radius_y * length)
+                .mul_add(-angle.cos(), self.center_y)
+                .round() as isize,
         }
     }
 }

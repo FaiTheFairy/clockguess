@@ -33,14 +33,13 @@ pub fn run(
     match cli.rounds {
         Some(rounds) => {
             for _ in 0..rounds {
-                if play_round(&renderer, cli, input, output, &mut buffer)? == RoundControl::Quit {
+                if play_round(renderer, cli, input, output, &mut buffer)? == RoundControl::Quit {
                     break;
                 }
             }
         }
         None => {
-            while play_round(&renderer, cli, input, output, &mut buffer)? == RoundControl::Continue
-            {
+            while play_round(renderer, cli, input, output, &mut buffer)? == RoundControl::Continue {
             }
         }
     }
@@ -93,9 +92,8 @@ fn play_round(
     let elapsed = started.elapsed();
     let difference = expected.analog_difference(answer);
 
+    writeln!(output)?;
     if difficulty.accepts(expected, answer) {
-        writeln!(output)?;
-
         if difference == 0 {
             writeln!(output, "Correct! Exact answer.")?;
         } else {
@@ -106,7 +104,6 @@ fn play_round(
             )?;
         }
     } else {
-        writeln!(output)?;
         writeln!(
             output,
             "Incorrect. Your answer was off by {}.",
@@ -204,7 +201,7 @@ mod tests {
 
     #[test]
     fn q_quits_during_answer_prompt() {
-        let mut input = "q\n".as_bytes();
+        let mut input: &[u8] = b"q\n";
         let mut output = Vec::new();
         let mut buffer = String::new();
 
@@ -215,7 +212,7 @@ mod tests {
 
     #[test]
     fn eof_quits_during_answer_prompt() {
-        let mut input = "".as_bytes();
+        let mut input: &[u8] = b"";
         let mut output = Vec::new();
         let mut buffer = String::new();
 
@@ -226,7 +223,7 @@ mod tests {
 
     #[test]
     fn invalid_input_is_retried() {
-        let mut input = "invalid\n9:30\n".as_bytes();
+        let mut input: &[u8] = b"invalid\n9:30\n";
         let mut output = Vec::new();
         let mut buffer = String::new();
 
@@ -244,13 +241,13 @@ mod tests {
 
     #[test]
     fn eof_does_not_continue() {
-        let mut input = "".as_bytes();
+        let mut input: &[u8] = b"";
         let mut output = Vec::new();
         let mut buffer = String::new();
 
         let result = ask_to_continue(&mut input, &mut output, &mut buffer).unwrap();
 
-        assert!(result == RoundControl::Quit);
+        assert_eq!(result, RoundControl::Quit);
     }
 
     #[test]

@@ -54,11 +54,11 @@ pub enum SecondHandMode {
 }
 
 impl SecondHandMode {
-    pub fn resolve(self, difficulty: Difficulty) -> bool {
+    pub const fn resolve(self, difficulty: Difficulty) -> bool {
         match self {
-            SecondHandMode::Auto => difficulty.show_seconds_by_default(),
-            SecondHandMode::Show => true,
-            SecondHandMode::Hide => false,
+            Self::Auto => difficulty.show_seconds_by_default(),
+            Self::Show => true,
+            Self::Hide => false,
         }
     }
 }

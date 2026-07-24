@@ -14,30 +14,30 @@ pub enum Difficulty {
 
 impl Difficulty {
     /// The interval to which the player is expected to read the clock
-    pub fn precision_seconds(self) -> u32 {
+    pub const fn precision_seconds(self) -> u32 {
         match self {
-            Difficulty::Hour => 60 * 60,
-            Difficulty::TenMinutes => 10 * 60,
-            Difficulty::FiveMinutes => 5 * 60,
-            Difficulty::Minute => 60,
-            Difficulty::ThirtySeconds => 30,
-            Difficulty::Exact => 0,
+            Self::Hour => 60 * 60,
+            Self::TenMinutes => 10 * 60,
+            Self::FiveMinutes => 5 * 60,
+            Self::Minute => 60,
+            Self::ThirtySeconds => 30,
+            Self::Exact => 0,
         }
     }
 
     /// An answer rounded to an interval may be at most half an interval away
-    pub fn tolerance_seconds(self) -> u32 {
+    pub const fn tolerance_seconds(self) -> u32 {
         self.precision_seconds() / 2
     }
 
-    pub fn description(self) -> &'static str {
+    pub const fn description(self) -> &'static str {
         match self {
-            Difficulty::Hour => "nearest hour",
-            Difficulty::TenMinutes => "nearest ten minutes",
-            Difficulty::FiveMinutes => "nearest five minutes",
-            Difficulty::Minute => "nearest minute",
-            Difficulty::ThirtySeconds => "nearest thirty seconds",
-            Difficulty::Exact => "exact time",
+            Self::Hour => "nearest hour",
+            Self::TenMinutes => "nearest ten minutes",
+            Self::FiveMinutes => "nearest five minutes",
+            Self::Minute => "nearest minute",
+            Self::ThirtySeconds => "nearest thirty seconds",
+            Self::Exact => "exact time",
         }
     }
 
@@ -45,14 +45,10 @@ impl Difficulty {
         expected.analog_difference(answer) <= self.tolerance_seconds()
     }
 
-    pub fn show_seconds_by_default(self) -> bool {
+    pub const fn show_seconds_by_default(self) -> bool {
         match self {
-            Difficulty::Exact => true,
-            Difficulty::ThirtySeconds => true,
-            Difficulty::Minute => false,
-            Difficulty::FiveMinutes => false,
-            Difficulty::TenMinutes => false,
-            Difficulty::Hour => false,
+            Self::Exact | Self::ThirtySeconds => true,
+            Self::Minute | Self::FiveMinutes | Self::TenMinutes | Self::Hour => false,
         }
     }
 }

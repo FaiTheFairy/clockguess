@@ -25,7 +25,7 @@ impl Cell {
         }
     }
 
-    pub(super) fn styled(ch: char, style: ContentStyle) -> Self {
+    pub(super) const fn styled(ch: char, style: ContentStyle) -> Self {
         Self { ch, style }
     }
 }
@@ -61,7 +61,7 @@ impl Canvas {
             return;
         }
 
-        let (x, y) = (x as usize, y as usize);
+        let (x, y) = (x.cast_unsigned(), y.cast_unsigned());
 
         if x >= self.width || y >= self.height {
             return;
@@ -82,7 +82,11 @@ impl Canvas {
     /// Text placement assumes every character occupies one terminal column
     pub(super) fn text(&mut self, start: Point, text: &str, style: ContentStyle) {
         for (offset, ch) in text.chars().enumerate() {
-            self.set_cell(start.x + offset as isize, start.y, Cell::styled(ch, style));
+            self.set_cell(
+                start.x + offset.cast_signed(),
+                start.y,
+                Cell::styled(ch, style),
+            );
         }
     }
 
@@ -94,7 +98,7 @@ impl Canvas {
         style: ContentStyle,
         alignment: TextAlign,
     ) {
-        let width = text.chars().count() as isize;
+        let width = text.chars().count().cast_signed();
 
         let start_x = match alignment {
             TextAlign::Left => anchor.x,
@@ -168,12 +172,12 @@ impl Canvas {
     }
 
     #[allow(dead_code)]
-    pub(super) fn width(&self) -> usize {
+    pub(super) const fn width(&self) -> usize {
         self.width
     }
 
     #[allow(dead_code)]
-    pub(super) fn height(&self) -> usize {
+    pub(super) const fn height(&self) -> usize {
         self.height
     }
 
