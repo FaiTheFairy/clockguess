@@ -9,11 +9,11 @@ const MIN_HEIGHT: i64 = 10;
 #[command(version, about = "Practice reading an analog clock")]
 pub struct Cli {
     /// Accuracy required for a correct answer.
-    #[arg(short, long, value_enum, default_value_t = Difficulty::FiveMinutes)]
+    #[arg(short, long, value_enum, default_value_t)]
     pub difficulty: Difficulty,
 
     /// Visual theme used by the clock.
-    #[arg(short, long, value_enum, default_value_t = Theme::Classic)]
+    #[arg(short, long, value_enum, default_value_t)]
     pub theme: Theme,
 
     /// Number of rounds to play. Omit to play until quitting.
@@ -37,8 +37,9 @@ pub struct Cli {
     pub show_seconds: SecondHandMode,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
 pub enum Theme {
+    #[default]
     Classic,
     Monochrome,
     Unicode,
