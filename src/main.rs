@@ -162,6 +162,14 @@ fn play_round(
     writeln!(stdout, "The time was {}", expected.to_12_hour())?;
     writeln!(stdout, "Answered in {:.1} seconds.", elapsed.as_secs_f32())?;
     writeln!(stdout)?;
+    ask_to_continue(stdin, stdout, input)
+}
+
+fn ask_to_continue(
+    stdin: &io::Stdin,
+    stdout: &mut io::Stdout,
+    input: &mut String,
+) -> Result<bool, anyhow::Error> {
     write!(
         stdout,
         "Press Enter for another clock, or q then enter to quit"
@@ -169,7 +177,10 @@ fn play_round(
     stdout.flush()?;
 
     input.clear();
-    stdin.read_line(input)?;
+
+    if stdin.read_line(input)? == 0 {
+        return Ok(false);
+    }
 
     Ok(!input.trim().eq_ignore_ascii_case("q"))
 }
