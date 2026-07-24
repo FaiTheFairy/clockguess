@@ -257,7 +257,7 @@ impl AsciiRenderer {
 impl ClockRenderer for AsciiRenderer {
     type Output = String;
 
-    fn render(&self, time: ClockTime, width: u16, height: u16, hide_seconds: bool) -> String {
+    fn render(&self, time: ClockTime, width: u16, height: u16, show_seconds: bool) -> String {
         let mut canvas = Canvas::new(width, height);
         let layout = ClockLayout::new(width, height, self.aspect_ratio);
 
@@ -265,7 +265,7 @@ impl ClockRenderer for AsciiRenderer {
         self.draw_numbers(&mut canvas, layout);
         self.draw_hour_hand(&mut canvas, layout, time);
         self.draw_minute_hand(&mut canvas, layout, time);
-        if !hide_seconds {
+        if show_seconds {
             self.draw_second_hand(&mut canvas, layout, time);
         }
 

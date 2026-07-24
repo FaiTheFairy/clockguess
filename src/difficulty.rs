@@ -41,13 +41,13 @@ impl Difficulty {
         expected.analog_difference(answer) <= self.tolerance_seconds()
     }
 
-    pub fn hide_seconds(self) -> bool {
+    pub fn show_seconds_by_default(self) -> bool {
         match self {
-            Difficulty::ThirtySeconds => false,
-            Difficulty::Exact => false,
+            Difficulty::ThirtySeconds => true,
+            Difficulty::Exact => true,
             Difficulty::Minute => false,
-            Difficulty::Hour => true,
-            Difficulty::FiveMinutes => true,
+            Difficulty::Hour => false,
+            Difficulty::FiveMinutes => false,
         }
     }
 }
