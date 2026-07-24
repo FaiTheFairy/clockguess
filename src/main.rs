@@ -119,7 +119,9 @@ fn play_round(
     let width = cli.width.unwrap_or(width);
     let height = cli.height.unwrap_or(height);
 
-    let clock_height = height.saturating_sub(4);
+    let clock_height = height
+        .checked_sub(4)
+        .context("terminal is too short to display the clock; increase its height")?;
 
     let expected = ClockTime::random();
     let rendered_clock = renderer.render(expected, width, clock_height, difficulty.hide_seconds());

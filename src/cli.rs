@@ -2,6 +2,9 @@ use clap::{Parser, ValueEnum};
 
 use crate::Difficulty;
 
+const MIN_WIDTH: i64 = 20;
+const MIN_HEIGHT: i64 = 10;
+
 #[derive(Parser, Debug)]
 #[command(version, about = "Practice reading an analog clock")]
 pub struct Cli {
@@ -14,15 +17,15 @@ pub struct Cli {
     pub theme: Theme,
 
     /// Number of rounds to play. Omit to play until quitting.
-    #[arg(short, long)]
+    #[arg(short, long, value_parser = clap::value_parser!(u32).range(1..))]
     pub rounds: Option<u32>,
 
     /// Override the detected terminal width
-    #[arg(long)]
+    #[arg(long, value_parser = clap::value_parser!(u16).range(MIN_WIDTH..))]
     pub width: Option<u16>,
 
     /// Override the detected terminal height
-    #[arg(long)]
+    #[arg(long, value_parser = clap::value_parser!(u16).range(MIN_HEIGHT..))]
     pub height: Option<u16>,
 
     /// Do not clear the terminal between rounds.
