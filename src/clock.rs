@@ -117,39 +117,41 @@ impl ClockTime {
     }
 
     fn parse_compact(input: &str) -> anyhow::Result<Self> {
+        fn parse_component(value: &str, name: &str) -> anyhow::Result<u8> {
+            value
+                .parse()
+                .with_context(|| format!("{name} must be a number"))
+        }
+
         let (hour, minute, second) = match input.len() {
             1 | 2 => {
-                let hour = input.parse().context("hour must be a number")?;
+                let hour = parse_component(&input, "hour")?;
                 (hour, 0, 0)
             }
 
             3 => {
-                let hour = input[..1].parse().context("hour must be a number")?;
-
-                let minute = input[1..].parse().context("minute must be a number")?;
-
+                let hour = parse_component(&input[..1], "hour")?;
+                let minute = parse_component(&input[1..], "minute")?;
                 (hour, minute, 0)
             }
 
             4 => {
-                let hour = input[..2].parse().context("hour must be a number")?;
-
-                let minute = input[2..].parse().context("minute must be a number")?;
-
+                let hour = parse_component(&input[..2], "hour")?;
+                let minute = parse_component(&input[2..], "minute")?;
                 (hour, minute, 0)
             }
 
             5 => {
-                let hour = input[..1].parse().context("hour must be a number")?;
-                let minute = input[1..3].parse().context("minute must be a number")?;
-                let second = input[3..].parse().context("second must be a number")?;
+                let hour = parse_component(&input[..1], "hour")?;
+                let minute = parse_component(&input[1..3], "minute")?;
+                let second = parse_component(&input[3..], "second")?;
                 (hour, minute, second)
             }
 
             6 => {
-                let hour = input[..2].parse().context("hour must be a number")?;
-                let minute = input[2..4].parse().context("minute must be a number")?;
-                let second = input[4..].parse().context("second must be a number")?;
+                let hour = parse_component(&input[..2], "hour")?;
+                let minute = parse_component(&input[2..4], "minute")?;
+                let second = parse_component(&input[4..], "second")?;
                 (hour, minute, second)
             }
 
@@ -217,6 +219,32 @@ impl std::fmt::Display for ClockTime {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn midnight_displays_as_twelve() {
+        assert_eq!(ClockTime::new(0, 15, 0).hour_12(), 12);
+    }
+
+    #[test]
+    fn noon_displays_as_twelve() {
+        assert_eq!(ClockTime::new(12, 15, 0).hour_12(), 12);
+    }
+
+    #[test]
+    fn analog_difference_is_symmetric() {
+        let a = ClockTime::new(11, 59, 0);
+        let b = ClockTime::new(12, 1, 0);
+
+        assert_eq!(a.analog_difference(b), b.analog_difference(a));
+    }
+
+    #[test]
+    fn analog_difference_uses_shortest_path() {
+        let a = ClockTime::new(1, 0, 0);
+        let b = ClockTime::new(11, 0, 0);
+
+        assert_eq!(a.analog_difference(b), 2 * 60 * 60);
+    }
 
     #[test]
     fn parses_hour_only() {
