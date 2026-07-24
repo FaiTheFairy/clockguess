@@ -20,15 +20,7 @@ pub struct ClockTime {
 impl ClockTime {
     #[allow(dead_code)]
     pub fn new(hour: u8, minute: u8, second: u8) -> Self {
-        assert!(hour < 24, "hour must be between 0 and 23");
-        assert!(minute < 60, "minute must be between 0 and 59");
-        assert!(second < 60, "second must be between 0 and 59");
-
-        Self {
-            hour,
-            minute,
-            second,
-        }
+        Self::try_new(hour, minute, second).unwrap()
     }
 
     pub fn try_new(hour: u8, minute: u8, second: u8) -> anyhow::Result<Self> {
