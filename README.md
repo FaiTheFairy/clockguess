@@ -1,6 +1,6 @@
 # To clone repo
 ```bash
-git clone
+git clone https://github.com/FaiTheFairy/clockguess.git
 cd clockguess
 ```
 
