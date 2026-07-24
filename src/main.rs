@@ -17,5 +17,5 @@ fn main() -> anyhow::Result<()> {
 
     let stdin = io::stdin();
     let mut stdout = io::stdout();
-    game::run(&cli, &renderer, stdin, stdout)
+    game::run(&cli, &renderer, &mut stdin.lock(), &mut stdout.lock())
 }

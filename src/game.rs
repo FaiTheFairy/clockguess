@@ -5,14 +5,10 @@ use crossterm::{
     terminal::{Clear, ClearType},
 };
 
-use std::io;
-use std::io::Write;
+use std::io::{BufRead, Write};
 use std::time::Instant;
 
-use crate::AsciiRenderer;
-use crate::Cli;
-use crate::clock::ClockTime;
-use crate::render::ClockRenderer;
+use crate::{AsciiRenderer, Cli, clock::ClockTime, render::ClockRenderer};
 
 enum PlayerInput {
     Answer(ClockTime),
@@ -22,20 +18,20 @@ enum PlayerInput {
 pub fn run(
     cli: &Cli,
     renderer: &AsciiRenderer,
-    stdin: io::Stdin,
-    mut stdout: io::Stdout,
-) -> Result<(), anyhow::Error> {
-    let mut input = String::with_capacity(16);
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+) -> anyhow::Result<()> {
+    let mut buffer = String::with_capacity(16);
 
     match cli.rounds {
         Some(rounds) => {
             for _ in 0..rounds {
-                if !play_round(&renderer, &cli, &stdin, &mut stdout, &mut input)? {
+                if !play_round(&renderer, cli, input, output, &mut buffer)? {
                     break;
                 }
             }
         }
-        None => while play_round(&renderer, &cli, &stdin, &mut stdout, &mut input)? {},
+        None => while play_round(&renderer, cli, input, output, &mut buffer)? {},
     }
     Ok(())
 }
@@ -43,12 +39,12 @@ pub fn run(
 fn play_round(
     renderer: &AsciiRenderer,
     cli: &Cli,
-    stdin: &io::Stdin,
-    stdout: &mut io::Stdout,
-    input: &mut String,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+    buffer: &mut String,
 ) -> anyhow::Result<bool> {
     if !cli.no_clear {
-        clear_terminal(stdout)?;
+        clear_terminal(output)?;
     }
 
     let difficulty = cli.difficulty;
@@ -66,18 +62,18 @@ fn play_round(
     let expected = ClockTime::random();
     let rendered_clock = renderer.render(expected, width, clock_height, difficulty.hide_seconds());
 
-    writeln!(stdout, "{rendered_clock}")?;
+    writeln!(output, "{rendered_clock}")?;
     writeln!(
-        stdout,
+        output,
         "What's the time? Read to the {}",
         difficulty.description()
     )?;
-    writeln!(stdout, "Enter a time such as 12:30, or q to quit: ")?;
-    stdout.flush()?;
+    write!(output, "Enter a time such as 12:30, or q to quit: ")?;
+    output.flush()?;
 
     let started = Instant::now();
 
-    let answer = match read_player_input(stdin, stdout, input)? {
+    let answer = match read_player_input(input, output, buffer)? {
         PlayerInput::Answer(answer) => answer,
         PlayerInput::Quit => return Ok(false),
     };
@@ -86,78 +82,83 @@ fn play_round(
     let difference = expected.analog_difference(answer);
 
     if difficulty.accepts(expected, answer) {
-        writeln!(stdout)?;
-        writeln!(
-            stdout,
-            "Correct!, Your answer was off by {}.",
-            format_duration(difference)
-        )?;
+        writeln!(output)?;
+
+        if difference == 0 {
+            writeln!(output, "Correct! Exact answer.")?;
+        } else {
+            writeln!(
+                output,
+                "Correct! Your answer was off by {}.",
+                format_duration(difference)
+            )?;
+        }
     } else {
-        writeln!(stdout)?;
+        writeln!(output)?;
         writeln!(
-            stdout,
+            output,
             "Incorrect. Your answer was off by {}.",
             format_duration(difference)
         )?;
     }
 
-    writeln!(stdout, "The time was {}", expected.to_12_hour())?;
-    writeln!(stdout, "Answered in {:.1} seconds.", elapsed.as_secs_f32())?;
-    writeln!(stdout)?;
-    ask_to_continue(stdin, stdout, input)
+    writeln!(output, "The time was {}", expected.to_12_hour())?;
+    writeln!(output, "Answered in {:.1} seconds.", elapsed.as_secs_f32())?;
+    writeln!(output)?;
+    ask_to_continue(input, output, buffer)
 }
 
 fn ask_to_continue(
-    stdin: &io::Stdin,
-    stdout: &mut io::Stdout,
-    input: &mut String,
-) -> Result<bool, anyhow::Error> {
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+    buffer: &mut String,
+) -> anyhow::Result<bool> {
     write!(
-        stdout,
-        "Press Enter for another clock, or q then enter to quit"
+        output,
+        "Press Enter for another clock, or q then Enter to quit: "
     )?;
-    stdout.flush()?;
+    output.flush()?;
 
-    input.clear();
+    buffer.clear();
 
-    if stdin.read_line(input)? == 0 {
+    if input.read_line(buffer)? == 0 {
         return Ok(false);
     }
 
-    Ok(!input.trim().eq_ignore_ascii_case("q"))
+    Ok(!buffer.trim().eq_ignore_ascii_case("q"))
 }
 
 fn read_player_input(
-    stdin: &io::Stdin,
-    stdout: &mut io::Stdout,
-    input: &mut String,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+    buffer: &mut String,
 ) -> anyhow::Result<PlayerInput> {
     loop {
-        input.clear();
+        buffer.clear();
 
-        if stdin.read_line(input)? == 0 {
+        if input.read_line(buffer)? == 0 {
             return Ok(PlayerInput::Quit);
         }
 
-        let input = input.trim();
+        let answer = buffer.trim();
 
-        if input.eq_ignore_ascii_case("q") {
+        if answer.eq_ignore_ascii_case("q") {
             return Ok(PlayerInput::Quit);
         }
 
-        match input.parse::<ClockTime>() {
+        match answer.parse::<ClockTime>() {
             Ok(time) => return Ok(PlayerInput::Answer(time)),
             Err(error) => {
-                writeln!(stdout, "Invalid time: {error}")?;
-                write!(stdout, "Try again, or enter q to quit: ")?;
-                stdout.flush()?;
+                writeln!(output, "Invalid time: {error}")?;
+                write!(output, "Try again, or enter q to quit: ")?;
+                output.flush()?;
             }
         }
     }
 }
 
-fn clear_terminal(stdout: &mut io::Stdout) -> anyhow::Result<()> {
-    execute!(stdout, Clear(ClearType::All), MoveTo(0, 0))?;
+fn clear_terminal(output: &mut impl Write) -> anyhow::Result<()> {
+    execute!(output, Clear(ClearType::All), MoveTo(0, 0))?;
     Ok(())
 }
 
@@ -169,5 +170,61 @@ fn format_duration(total_seconds: u32) -> String {
         (0, seconds) => format!("{seconds} seconds"),
         (minutes, 0) => format!("{minutes} minutes"),
         (minutes, seconds) => format!("{minutes} minutes and {seconds} seconds"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn q_quits_during_answer_prompt() {
+        let mut input = "q\n".as_bytes();
+        let mut output = Vec::new();
+        let mut buffer = String::new();
+
+        let result = read_player_input(&mut input, &mut output, &mut buffer).unwrap();
+
+        assert!(matches!(result, PlayerInput::Quit));
+    }
+
+    #[test]
+    fn eof_quits_during_answer_prompt() {
+        let mut input = "".as_bytes();
+        let mut output = Vec::new();
+        let mut buffer = String::new();
+
+        let result = read_player_input(&mut input, &mut output, &mut buffer).unwrap();
+
+        assert!(matches!(result, PlayerInput::Quit));
+    }
+
+    #[test]
+    fn invalid_input_is_retried() {
+        let mut input = "invalid\n9:30\n".as_bytes();
+        let mut output = Vec::new();
+        let mut buffer = String::new();
+
+        let result = read_player_input(&mut input, &mut output, &mut buffer).unwrap();
+
+        assert!(matches!(
+            result,
+            PlayerInput::Answer(time) if time == ClockTime::new(9, 30, 0)
+        ));
+
+        let output = String::from_utf8(output).unwrap();
+        assert!(output.contains("Invalid time:"));
+        assert!(output.contains("Try again"));
+    }
+
+    #[test]
+    fn eof_does_not_continue() {
+        let mut input = "".as_bytes();
+        let mut output = Vec::new();
+        let mut buffer = String::new();
+
+        let result = ask_to_continue(&mut input, &mut output, &mut buffer).unwrap();
+
+        assert!(!result);
     }
 }
