@@ -71,7 +71,7 @@ fn play_round(
         .context("terminal is too short to display the clock; increase its height")?;
 
     let expected = ClockTime::random();
-    let show_seconds = difficulty.show_seconds_by_default();
+    let show_seconds = cli.show_seconds.resolve(difficulty);
     let rendered_clock = renderer.render(expected, width, clock_height, show_seconds);
 
     writeln!(output, "{rendered_clock}")?;

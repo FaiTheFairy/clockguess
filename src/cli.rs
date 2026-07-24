@@ -31,6 +31,10 @@ pub struct Cli {
     /// Do not clear the terminal between rounds.
     #[arg(long)]
     pub no_clear: bool,
+
+    /// Whether or not to show seconds hand. Auto mode uses difficulty to decide.
+    #[arg(long, value_enum, default_value_t)]
+    pub show_seconds: SecondHandMode,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
@@ -38,4 +42,22 @@ pub enum Theme {
     Classic,
     Monochrome,
     Unicode,
+}
+
+#[derive(Copy, Clone, Debug, Default, ValueEnum, PartialEq, Eq)]
+pub enum SecondHandMode {
+    #[default]
+    Auto,
+    Show,
+    Hide,
+}
+
+impl SecondHandMode {
+    pub fn resolve(self, difficulty: Difficulty) -> bool {
+        match self {
+            SecondHandMode::Auto => difficulty.show_seconds_by_default(),
+            SecondHandMode::Show => true,
+            SecondHandMode::Hide => false,
+        }
+    }
 }
