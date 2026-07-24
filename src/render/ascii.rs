@@ -191,7 +191,7 @@ impl AsciiRenderer {
             let style = self.theme.minute_tick_style;
 
             if index % 5 != 0 {
-                canvas.set_styled(point.x, point.y, ch, style);
+                canvas.set_styled(point, ch, style);
             }
         }
     }
@@ -239,9 +239,9 @@ impl AsciiRenderer {
     }
 
     fn draw_center(&self, canvas: &mut Canvas, layout: ClockLayout) {
-        let Point { x, y } = layout.center();
+        let point = layout.center();
 
-        canvas.set_styled(x, y, self.theme.center_ch, self.theme.center_style);
+        canvas.set_styled(point, self.theme.center_ch, self.theme.center_style);
     }
 }
 

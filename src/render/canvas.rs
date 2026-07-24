@@ -75,8 +75,8 @@ impl Canvas {
         self.set_cell(x, y, Cell::plain(ch));
     }
 
-    pub(super) fn set_styled(&mut self, x: isize, y: isize, ch: char, style: ContentStyle) {
-        self.set_cell(x, y, Cell::styled(ch, style));
+    pub(super) fn set_styled(&mut self, point: Point, ch: char, style: ContentStyle) {
+        self.set_cell(point.x, point.y, Cell::styled(ch, style));
     }
 
     /// Text placement assumes every character occupies one terminal column
@@ -266,7 +266,11 @@ mod tests {
 
         let mut canvas = Canvas::new(1, 1);
 
-        canvas.set_styled(0, 0, '#', ContentStyle::default().with(Color::Red));
+        canvas.set_styled(
+            Point { x: 0, y: 0 },
+            '#',
+            ContentStyle::default().with(Color::Red),
+        );
 
         let rendered = canvas.render();
 
