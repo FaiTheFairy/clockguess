@@ -183,10 +183,19 @@ fn format_duration(total_seconds: u32) -> String {
     let seconds = total_seconds % 60;
 
     match (minutes, seconds) {
-        (0, seconds) => format!("{seconds} seconds"),
-        (minutes, 0) => format!("{minutes} minutes"),
-        (minutes, seconds) => format!("{minutes} minutes and {seconds} seconds"),
+        (0, seconds) => unit(seconds, "second", "seconds"),
+        (minutes, 0) => unit(minutes, "minute", "minutes"),
+        (minutes, seconds) => format!(
+            "{} and {}",
+            unit(minutes, "minute", "minutes"),
+            unit(seconds, "second", "seconds")
+        ),
     }
+}
+
+fn unit(value: u32, singular: &str, plural: &str) -> String {
+    let label = if value == 1 { singular } else { plural };
+    format!("{value} {label}")
 }
 
 #[cfg(test)]
@@ -242,5 +251,13 @@ mod tests {
         let result = ask_to_continue(&mut input, &mut output, &mut buffer).unwrap();
 
         assert!(result == RoundControl::Quit);
+    }
+
+    #[test]
+    fn test_fromat_duration() {
+        assert_eq!(format_duration(0), "0 seconds");
+        assert_eq!(format_duration(1), "1 second");
+        assert_eq!(format_duration(60), "1 minute");
+        assert_eq!(format_duration(61), "1 minute and 1 second");
     }
 }
