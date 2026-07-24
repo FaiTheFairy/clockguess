@@ -3,7 +3,7 @@ use std::f64::consts::TAU;
 use crossterm::style::{Attribute, Color, ContentStyle, Stylize};
 
 use crate::{
-    cli::Theme,
+    cli::ThemeChoice,
     clock::ClockTime,
     render::{
         ClockRenderer,
@@ -103,12 +103,12 @@ impl Default for AsciiTheme {
     }
 }
 
-impl From<Theme> for AsciiTheme {
-    fn from(value: Theme) -> Self {
+impl From<ThemeChoice> for AsciiTheme {
+    fn from(value: ThemeChoice) -> Self {
         match value {
-            Theme::Classic => Self::classic(),
-            Theme::Monochrome => Self::monochrome(),
-            Theme::Unicode => Self::unicode(),
+            ThemeChoice::Classic => Self::classic(),
+            ThemeChoice::Monochrome => Self::monochrome(),
+            ThemeChoice::Unicode => Self::unicode(),
         }
     }
 }

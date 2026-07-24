@@ -14,7 +14,7 @@ pub struct Cli {
 
     /// Visual theme used by the clock.
     #[arg(short, long, value_enum, default_value_t)]
-    pub theme: Theme,
+    pub theme: ThemeChoice,
 
     /// Number of rounds to play. Omit to play until quitting.
     #[arg(short, long, value_parser = clap::value_parser!(u32).range(1..))]
@@ -38,7 +38,7 @@ pub struct Cli {
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
-pub enum Theme {
+pub enum ThemeChoice {
     #[default]
     Classic,
     Monochrome,
