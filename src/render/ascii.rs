@@ -11,28 +11,30 @@ use crate::{
     },
 };
 
+const DEFAULT_TERMINAL_CELL_ASPECT_RATIO: f64 = 2.0;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct AsciiTheme {
-    pub minute_tick_ch: char,
-    pub minute_tick_style: ContentStyle,
+pub(crate) struct AsciiTheme {
+    pub(crate) minute_tick_ch: char,
+    pub(crate) minute_tick_style: ContentStyle,
 
-    pub hour_number_radius: f64,
-    pub hour_number_style: ContentStyle,
+    pub(crate) hour_number_radius: f64,
+    pub(crate) hour_number_style: ContentStyle,
 
-    pub hour_hand_ch: char,
-    pub hour_hand_style: ContentStyle,
-    pub hour_hand_length: f64,
+    pub(crate) hour_hand_ch: char,
+    pub(crate) hour_hand_style: ContentStyle,
+    pub(crate) hour_hand_length: f64,
 
-    pub minute_hand_ch: char,
-    pub minute_hand_style: ContentStyle,
-    pub minute_hand_length: f64,
+    pub(crate) minute_hand_ch: char,
+    pub(crate) minute_hand_style: ContentStyle,
+    pub(crate) minute_hand_length: f64,
 
-    pub second_hand_ch: char,
-    pub second_hand_style: ContentStyle,
-    pub second_hand_length: f64,
+    pub(crate) second_hand_ch: char,
+    pub(crate) second_hand_style: ContentStyle,
+    pub(crate) second_hand_length: f64,
 
-    pub center_ch: char,
-    pub center_style: ContentStyle,
+    pub(crate) center_ch: char,
+    pub(crate) center_style: ContentStyle,
 }
 
 impl AsciiTheme {
@@ -161,31 +163,16 @@ impl ClockLayout {
 }
 
 impl AsciiRenderer {
-    pub fn with_theme(aspect_ratio: f64, theme: AsciiTheme) -> Self {
-        assert!(
-            aspect_ratio.is_finite() && aspect_ratio > 0.0,
-            "aspect ratio must be finite and positive"
-        );
-
+    pub fn new(theme: AsciiTheme) -> Self {
         Self::validate_length(theme.hour_hand_length, "hour hand length");
         Self::validate_length(theme.minute_hand_length, "minute hand length");
         Self::validate_length(theme.second_hand_length, "second hand length");
         Self::validate_length(theme.hour_number_radius, "hour number radius");
 
         Self {
-            aspect_ratio,
+            aspect_ratio: DEFAULT_TERMINAL_CELL_ASPECT_RATIO,
             theme,
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn theme(&self) -> &AsciiTheme {
-        &self.theme
-    }
-
-    #[allow(dead_code)]
-    pub fn theme_mut(&mut self) -> &mut AsciiTheme {
-        &mut self.theme
     }
 
     fn validate_length(length: f64, name: &str) {
@@ -250,6 +237,12 @@ impl AsciiRenderer {
             self.theme.second_hand_style,
         );
     }
+
+    fn draw_center(&self, canvas: &mut Canvas, layout: ClockLayout) {
+        let Point { x, y } = layout.center();
+
+        canvas.set_styled(x, y, self.theme.center_ch, self.theme.center_style);
+    }
 }
 
 impl ClockRenderer for AsciiRenderer {
@@ -266,11 +259,8 @@ impl ClockRenderer for AsciiRenderer {
         if show_seconds {
             self.draw_second_hand(&mut canvas, layout, time);
         }
-
         // Redraw the center so the pivot remains visible.
-        let Point { x, y } = layout.center();
-
-        canvas.set_styled(x, y, self.theme.center_ch, self.theme.center_style);
+        self.draw_center(&mut canvas, layout);
 
         canvas.render()
     }
@@ -279,7 +269,7 @@ impl ClockRenderer for AsciiRenderer {
 impl Default for AsciiRenderer {
     fn default() -> Self {
         Self {
-            aspect_ratio: 2.0,
+            aspect_ratio: DEFAULT_TERMINAL_CELL_ASPECT_RATIO,
             theme: AsciiTheme::default(),
         }
     }

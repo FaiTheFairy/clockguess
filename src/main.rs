@@ -13,7 +13,7 @@ mod render;
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    let renderer = AsciiRenderer::with_theme(2.0, cli.theme.into());
+    let renderer = AsciiRenderer::new(cli.theme.into());
 
     let stdin = io::stdin();
     let stdout = io::stdout();
