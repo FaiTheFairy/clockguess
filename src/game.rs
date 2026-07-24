@@ -10,6 +10,13 @@ use std::time::Instant;
 
 use crate::{AsciiRenderer, Cli, clock::ClockTime, render::ClockRenderer};
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum RoundControl {
+    Continue,
+    Quit,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum PlayerInput {
     Answer(ClockTime),
     Quit,
@@ -26,12 +33,16 @@ pub fn run(
     match cli.rounds {
         Some(rounds) => {
             for _ in 0..rounds {
-                if !play_round(&renderer, cli, input, output, &mut buffer)? {
+                if play_round(&renderer, cli, input, output, &mut buffer)? == RoundControl::Quit {
                     break;
                 }
             }
         }
-        None => while play_round(&renderer, cli, input, output, &mut buffer)? {},
+        None => {
+            while play_round(&renderer, cli, input, output, &mut buffer)? == RoundControl::Continue
+            {
+            }
+        }
     }
     Ok(())
 }
@@ -42,7 +53,7 @@ fn play_round(
     input: &mut impl BufRead,
     output: &mut impl Write,
     buffer: &mut String,
-) -> anyhow::Result<bool> {
+) -> anyhow::Result<RoundControl> {
     if !cli.no_clear {
         clear_terminal(output)?;
     }
@@ -75,7 +86,7 @@ fn play_round(
 
     let answer = match read_player_input(input, output, buffer)? {
         PlayerInput::Answer(answer) => answer,
-        PlayerInput::Quit => return Ok(false),
+        PlayerInput::Quit => return Ok(RoundControl::Quit),
     };
 
     let elapsed = started.elapsed();
@@ -112,7 +123,7 @@ fn ask_to_continue(
     input: &mut impl BufRead,
     output: &mut impl Write,
     buffer: &mut String,
-) -> anyhow::Result<bool> {
+) -> anyhow::Result<RoundControl> {
     write!(
         output,
         "Press Enter for another clock, or q then Enter to quit: "
@@ -122,10 +133,14 @@ fn ask_to_continue(
     buffer.clear();
 
     if input.read_line(buffer)? == 0 {
-        return Ok(false);
+        return Ok(RoundControl::Quit);
     }
 
-    Ok(!buffer.trim().eq_ignore_ascii_case("q"))
+    Ok(if buffer.trim().eq_ignore_ascii_case("q") {
+        RoundControl::Quit
+    } else {
+        RoundControl::Continue
+    })
 }
 
 fn read_player_input(
@@ -225,6 +240,6 @@ mod tests {
 
         let result = ask_to_continue(&mut input, &mut output, &mut buffer).unwrap();
 
-        assert!(!result);
+        assert!(result == RoundControl::Quit);
     }
 }
