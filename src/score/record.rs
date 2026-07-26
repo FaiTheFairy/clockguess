@@ -15,7 +15,8 @@ pub struct ScoreRecord {
     pub incorrect: u32,
     pub exact: u32,
     pub time_limit_seconds: Option<u64>,
-    pub total_answer_time: u64,
+    pub round_limit: Option<u32>,
+    pub total_answer_time_ms: u64,
     pub played_at_unix: u64,
 }
 
@@ -33,7 +34,12 @@ impl ScoreRecord {
             } else {
                 None
             },
-            total_answer_time: stats.total_answer_time().as_secs(),
+            round_limit: match cli.mode {
+                GameMode::Challenge => Some(cli.rounds),
+                _ => None,
+            },
+            total_answer_time_ms: u64::try_from(stats.total_answer_time().as_millis())
+                .unwrap_or(u64::MAX),
             played_at_unix: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()

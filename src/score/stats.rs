@@ -23,6 +23,7 @@ pub struct SessionStats {
     points: u32,
     total_answer_time: Duration,
     best_answer_time: Option<Duration>,
+    quit: bool,
 }
 
 impl SessionStats {
@@ -98,8 +99,16 @@ impl SessionStats {
         }
     }
 
-    pub fn total_answer_time(&self) -> Duration {
+    pub const fn total_answer_time(&self) -> Duration {
         self.total_answer_time
+    }
+
+    pub const fn quit(&mut self) {
+        self.quit = true;
+    }
+
+    pub const fn has_quit(&self) -> bool {
+        self.quit
     }
 }
 

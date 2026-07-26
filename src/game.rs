@@ -52,7 +52,8 @@ pub fn run(
 
     print_summary(output, &stats)?;
 
-    if game_mode != GameMode::Practice {
+    let should_save = game_mode != GameMode::Practice && !stats.has_quit();
+    if should_save {
         let record = ScoreRecord::from_session(cli, &stats);
         score_store.add(record)?;
     }
@@ -73,7 +74,10 @@ fn run_practice(
             RoundControl::Completed(outcome) => {
                 stats.record(outcome, cli.difficulty);
             }
-            RoundControl::Quit => break,
+            RoundControl::Quit => {
+                stats.quit();
+                break;
+            }
         }
 
         if ask_to_continue(input, output, buffer)? == ContinueChoice::Quit {
@@ -100,7 +104,10 @@ fn run_challenge(
             RoundControl::Completed(outcome) => {
                 stats.record(outcome, cli.difficulty);
             }
-            RoundControl::Quit => break,
+            RoundControl::Quit => {
+                stats.quit();
+                break;
+            }
         }
     }
 
@@ -133,11 +140,18 @@ fn run_rapid_fire(
             RoundControl::Completed(outcome) => {
                 stats.record(outcome, cli.difficulty);
             }
-            RoundControl::Quit => break,
+            RoundControl::Quit => {
+                stats.quit();
+                break;
+            }
         }
     }
 
-    writeln!(output, "Time's up!")?;
+    if stats.has_quit() {
+        writeln!(output, "Session ended.")?;
+    } else {
+        writeln!(output, "Time's up!")?;
+    }
 
     Ok(stats)
 }
@@ -147,9 +161,9 @@ fn print_summary(output: &mut impl Write, stats: &SessionStats) -> anyhow::Resul
     writeln!(output, "Session complete")?;
     writeln!(output, "----------------")?;
     writeln!(output, "Score: {}", stats.points())?;
-    writeln!(output, "Correct: {}", stats.points())?;
-    writeln!(output, "Incorrect: {}", stats.points())?;
-    writeln!(output, "Exact answers: {}", stats.points())?;
+    writeln!(output, "Correct: {}", stats.correct())?;
+    writeln!(output, "Incorrect: {}", stats.incorrect())?;
+    writeln!(output, "Exact answers: {}", stats.exact())?;
 
     match stats.accuracy() {
         Some(accuracy) => writeln!(output, "Accuracy: {:.1}%", accuracy * 100.0)?,
@@ -168,6 +182,12 @@ fn print_summary(output: &mut impl Write, stats: &SessionStats) -> anyhow::Resul
     if let Some(best) = stats.best_answer_time() {
         writeln!(output, "Fastest answer: {:.1} seconds", best.as_secs_f64())?;
     }
+
+    writeln!(
+        output,
+        "Total time: {:.1} seconds",
+        stats.total_answer_time().as_secs_f64()
+    )?;
 
     Ok(())
 }

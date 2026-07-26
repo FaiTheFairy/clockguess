@@ -41,7 +41,7 @@ impl ScoreStore {
 
         writeln!(
             output,
-            "{:>5} {:<12} {:>8} {:>8} {:>8}",
+            "{:<5} {:<12} {:>8} {:>8} {:>8}",
             "Rank", "Mode", "Score", "Correct", "Exact"
         )?;
 
@@ -65,7 +65,8 @@ impl ScoreStore {
             fs::create_dir_all(parent)?;
         }
 
-        let temporary_path = self.path.join(".tmp");
+        let mut temporary_path = self.path.clone();
+        temporary_path.add_extension("tmp");
 
         let contents = serde_json::to_string_pretty(records).map_err(io::Error::other)?;
 
