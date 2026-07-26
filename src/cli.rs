@@ -1,4 +1,5 @@
 use clap::{Parser, ValueEnum};
+use serde::{Deserialize, Serialize};
 
 use crate::difficulty::Difficulty;
 
@@ -76,7 +77,7 @@ pub struct Cli {
     pub show_seconds: SecondHandMode,
 }
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
 pub enum GameMode {
     #[default]
     Practice,

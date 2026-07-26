@@ -9,7 +9,7 @@ use crossterm::{
 };
 
 use crate::cli::GameMode;
-use crate::score::{RoundOutcome, SessionStats};
+use crate::score::{RoundOutcome, ScoreRecord, ScoreStore, SessionStats};
 use crate::{
     cli::Cli,
     clock::{ClockTime, SECONDS_PER_MINUTE},
@@ -37,14 +37,22 @@ pub fn run(
     output: &mut impl Write,
 ) -> anyhow::Result<()> {
     let mut buffer = String::with_capacity(16);
+    let score_store = ScoreStore::try_new()?;
 
-    let stats = match cli.mode {
+    let game_mode = cli.mode;
+    let stats = match game_mode {
         GameMode::Practice => run_practice(cli, renderer, input, output, &mut buffer)?,
         GameMode::Challenge => run_challenge(cli, renderer, input, output, &mut buffer)?,
         GameMode::RapidFire => run_rapid_fire(cli, renderer, input, output, &mut buffer)?,
     };
 
-    print_summary(output, &stats)
+    print_summary(output, &stats)?;
+
+    if game_mode != GameMode::Practice {
+        let record = ScoreRecord::from_session(game_mode, &stats);
+        score_store.add(record)?;
+    }
+    Ok(())
 }
 
 fn run_practice(

@@ -97,6 +97,10 @@ impl SessionStats {
             self.incorrect += 1;
         }
     }
+
+    pub fn total_answer_time(&self) -> Duration {
+        self.total_answer_time
+    }
 }
 
 pub const fn calculate_points(difficulty: Difficulty, difference_seconds: u32) -> u32 {
