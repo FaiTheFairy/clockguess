@@ -39,6 +39,10 @@ pub fn run(
     let mut buffer = String::with_capacity(16);
     let score_store = ScoreStore::try_new()?;
 
+    if cli.print_scores {
+        return score_store.pretty_write_scores(output);
+    }
+
     let game_mode = cli.mode;
     let stats = match game_mode {
         GameMode::Practice => run_practice(cli, renderer, input, output, &mut buffer)?,
@@ -49,7 +53,7 @@ pub fn run(
     print_summary(output, &stats)?;
 
     if game_mode != GameMode::Practice {
-        let record = ScoreRecord::from_session(game_mode, &stats);
+        let record = ScoreRecord::from_session(cli, &stats);
         score_store.add(record)?;
     }
     Ok(())

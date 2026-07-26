@@ -1,28 +1,38 @@
-use std::time::Duration;
-
 use serde::{Deserialize, Serialize};
 
-use crate::{cli::GameMode, score::SessionStats};
+use crate::{
+    cli::{Cli, GameMode},
+    difficulty::Difficulty,
+    score::SessionStats,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ScoreRecord {
     pub mode: GameMode,
+    pub difficulty: Difficulty,
     pub points: u32,
     pub correct: u32,
     pub incorrect: u32,
     pub exact: u32,
+    pub time_limit_seconds: Option<u64>,
     pub total_answer_time: u64,
     pub played_at_unix: u64,
 }
 
 impl ScoreRecord {
-    pub fn from_session(mode: GameMode, stats: &SessionStats) -> Self {
+    pub fn from_session(cli: &Cli, stats: &SessionStats) -> Self {
         Self {
-            mode,
+            mode: cli.mode,
+            difficulty: cli.difficulty,
             points: stats.points(),
             correct: stats.correct(),
             incorrect: stats.incorrect(),
             exact: stats.exact(),
+            time_limit_seconds: if cli.mode == GameMode::RapidFire {
+                Some(cli.rapid_seconds)
+            } else {
+                None
+            },
             total_answer_time: stats.total_answer_time().as_secs(),
             played_at_unix: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

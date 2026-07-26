@@ -75,6 +75,9 @@ pub struct Cli {
     /// Whether or not to show seconds hand.
     #[arg(long, value_enum, default_value_t)]
     pub show_seconds: SecondHandMode,
+
+    #[arg(long)]
+    pub print_scores: bool,
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
@@ -83,6 +86,16 @@ pub enum GameMode {
     Practice,
     Challenge,
     RapidFire,
+}
+
+impl std::fmt::Display for GameMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Practice => write!(f, "Practice"),
+            Self::Challenge => write!(f, "Challenge"),
+            Self::RapidFire => write!(f, "Rapid-fire"),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum)]

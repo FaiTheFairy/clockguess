@@ -1,4 +1,8 @@
-use std::{fs, io, path::PathBuf};
+use std::{
+    fs,
+    io::{self, Write},
+    path::PathBuf,
+};
 
 use directories::ProjectDirs;
 
@@ -19,10 +23,6 @@ impl ScoreStore {
         Ok(Self { path })
     }
 
-    pub unsafe fn new() -> Self {
-        Self::try_new().unwrap()
-    }
-
     pub fn load(&self) -> io::Result<Vec<ScoreRecord>> {
         if !self.path.exists() {
             return Ok(Vec::new());
@@ -34,14 +34,45 @@ impl ScoreStore {
             .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
     }
 
+    pub fn pretty_write_scores(&self, output: &mut impl Write) -> anyhow::Result<()> {
+        let mut records = self.load()?;
+
+        records.sort_by_key(|record| std::cmp::Reverse(record.points));
+
+        writeln!(
+            output,
+            "{:>5} {:<12} {:>8} {:>8} {:>8}",
+            "Rank", "Mode", "Score", "Correct", "Exact"
+        )?;
+
+        for (index, record) in records.iter().take(10).enumerate() {
+            writeln!(
+                output,
+                "{:<5} {:<12} {:>8} {:>8} {:>8}",
+                index + 1,
+                record.mode,
+                record.points,
+                record.correct,
+                record.exact
+            )?;
+        }
+
+        Ok(())
+    }
+
     pub fn save(&self, records: &[ScoreRecord]) -> io::Result<()> {
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
 
+        let temporary_path = self.path.join(".tmp");
+
         let contents = serde_json::to_string_pretty(records).map_err(io::Error::other)?;
 
-        fs::write(&self.path, contents)
+        fs::write(&temporary_path, contents)?;
+        fs::rename(temporary_path, &self.path)?;
+
+        Ok(())
     }
 
     pub fn add(&self, record: ScoreRecord) -> io::Result<()> {

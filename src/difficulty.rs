@@ -1,7 +1,8 @@
 use crate::clock::ClockTime;
 use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq, ValueEnum, Serialize, Deserialize)]
 pub enum Difficulty {
     Hour,
     #[default]
